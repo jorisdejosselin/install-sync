@@ -27,7 +27,7 @@ install-sync needs to create a repository on your behalf to store your package t
      - No expiration (not recommended)
 
 4. **Select Required Scopes**
-   
+
    **For Private Repositories (Recommended):**
    - ✅ **`repo`** - Full control of private repositories
      - This automatically includes:
@@ -84,7 +84,7 @@ install-sync needs to create a repository on your behalf to store your package t
    If you only select minimal scopes, you may encounter push failures:
    - ❌ **`read_api`** + **`write_repository`** - May work for existing repos but insufficient for full setup
    - ❌ **`read_repository`** + **`write_repository`** - Cannot create repositories
-   
+
    **Why `api` scope is required:**
    - Creates repositories via GitLab API
    - Enables git push operations to the repository

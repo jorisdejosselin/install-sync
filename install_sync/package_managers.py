@@ -1,51 +1,48 @@
 """Package manager implementations."""
 
 import subprocess
-import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from rich.console import Console
-
-from .models import PackageInfo
 
 console = Console()
 
 
 class PackageManager(ABC):
     """Abstract base class for package managers."""
-    
+
     @abstractmethod
     def install(self, package_name: str) -> bool:
         """Install a package."""
         pass
-    
+
     @abstractmethod
     def uninstall(self, package_name: str) -> bool:
         """Uninstall a package."""
         pass
-    
+
     @abstractmethod
     def upgrade(self, package_name: str) -> bool:
         """Upgrade a package to latest version."""
         pass
-    
+
     @abstractmethod
     def upgrade_all(self) -> bool:
         """Upgrade all packages."""
         pass
-    
+
     @abstractmethod
     def is_installed(self, package_name: str) -> bool:
         """Check if package is installed."""
         pass
-    
+
     @abstractmethod
     def get_version(self, package_name: str) -> Optional[str]:
         """Get installed package version."""
         pass
-    
+
     @abstractmethod
     def list_installed(self) -> List[str]:
         """List all installed packages."""
@@ -54,86 +51,83 @@ class PackageManager(ABC):
 
 class BrewManager(PackageManager):
     """Homebrew package manager for macOS."""
-    
+
     def install(self, package_name: str) -> bool:
         """Install package using brew."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["brew", "install", package_name],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to install {package_name}: {e.stderr}")
             return False
-    
+
     def uninstall(self, package_name: str) -> bool:
         """Uninstall package using brew."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["brew", "uninstall", package_name],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully uninstalled {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to uninstall {package_name}: {e.stderr}")
             return False
-    
+
     def upgrade(self, package_name: str) -> bool:
         """Upgrade package using brew."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["brew", "upgrade", package_name],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully upgraded {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             # Check if package is already up to date
-            if "already installed" in str(e.stderr).lower() or "up-to-date" in str(e.stderr).lower():
+            stderr_lower = str(e.stderr).lower()
+            if "already installed" in stderr_lower or "up-to-date" in stderr_lower:
                 console.print(f"ℹ️  {package_name} is already up to date")
                 return True
             console.print(f"❌ Failed to upgrade {package_name}: {e.stderr}")
             return False
-    
+
     def upgrade_all(self) -> bool:
         """Upgrade all brew packages."""
         try:
-            result = subprocess.run(
-                ["brew", "upgrade"],
-                capture_output=True,
-                text=True,
-                check=True
+            subprocess.run(
+                ["brew", "upgrade"], capture_output=True, text=True, check=True
             )
             console.print("✅ Successfully upgraded all packages")
             return True
         except subprocess.CalledProcessError as e:
-            if "already installed" in str(e.stderr).lower() or "up-to-date" in str(e.stderr).lower():
+            stderr_lower = str(e.stderr).lower()
+            if "already installed" in stderr_lower or "up-to-date" in stderr_lower:
                 console.print("ℹ️  All packages are already up to date")
                 return True
             console.print(f"❌ Failed to upgrade packages: {e.stderr}")
             return False
-    
+
     def is_installed(self, package_name: str) -> bool:
         """Check if package is installed via brew."""
         try:
             subprocess.run(
-                ["brew", "list", package_name],
-                capture_output=True,
-                check=True
+                ["brew", "list", package_name], capture_output=True, check=True
             )
             return True
         except subprocess.CalledProcessError:
             return False
-    
+
     def get_version(self, package_name: str) -> Optional[str]:
         """Get brew package version."""
         try:
@@ -141,95 +135,100 @@ class BrewManager(PackageManager):
                 ["brew", "list", "--versions", package_name],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             return result.stdout.strip().split()[-1] if result.stdout.strip() else None
         except subprocess.CalledProcessError:
             return None
-    
+
     def list_installed(self) -> List[str]:
         """List all brew packages."""
         try:
             result = subprocess.run(
-                ["brew", "list"],
-                capture_output=True,
-                text=True,
-                check=True
+                ["brew", "list"], capture_output=True, text=True, check=True
             )
-            return result.stdout.strip().split('\n') if result.stdout.strip() else []
+            return result.stdout.strip().split("\n") if result.stdout.strip() else []
         except subprocess.CalledProcessError:
             return []
 
 
 class WingetManager(PackageManager):
     """Windows Package Manager."""
-    
+
     def install(self, package_name: str) -> bool:
         """Install package using winget."""
         try:
-            result = subprocess.run(
-                ["winget", "install", package_name, "--accept-package-agreements", "--accept-source-agreements"],
+            subprocess.run(
+                [
+                    "winget",
+                    "install",
+                    package_name,
+                    "--accept-package-agreements",
+                    "--accept-source-agreements",
+                ],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to install {package_name}: {e.stderr}")
             return False
-    
+
     def uninstall(self, package_name: str) -> bool:
         """Uninstall package using winget."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["winget", "uninstall", package_name],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully uninstalled {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to uninstall {package_name}: {e.stderr}")
             return False
-    
+
     def upgrade(self, package_name: str) -> bool:
         """Upgrade package using winget."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["winget", "upgrade", package_name],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully upgraded {package_name}")
             return True
         except subprocess.CalledProcessError as e:
-            if "no newer version" in str(e.stderr).lower() or "up to date" in str(e.stderr).lower():
+            stderr_lower = str(e.stderr).lower()
+            if "no newer version" in stderr_lower or "up to date" in stderr_lower:
                 console.print(f"ℹ️  {package_name} is already up to date")
                 return True
             console.print(f"❌ Failed to upgrade {package_name}: {e.stderr}")
             return False
-    
+
     def upgrade_all(self) -> bool:
         """Upgrade all winget packages."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["winget", "upgrade", "--all"],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print("✅ Successfully upgraded all packages")
             return True
         except subprocess.CalledProcessError as e:
-            if "no newer version" in str(e.stderr).lower() or "up to date" in str(e.stderr).lower():
+            stderr_lower = str(e.stderr).lower()
+            if "no newer version" in stderr_lower or "up to date" in stderr_lower:
                 console.print("ℹ️  All packages are already up to date")
                 return True
             console.print(f"❌ Failed to upgrade packages: {e.stderr}")
             return False
-    
+
     def is_installed(self, package_name: str) -> bool:
         """Check if package is installed via winget."""
         try:
@@ -237,12 +236,12 @@ class WingetManager(PackageManager):
                 ["winget", "list", package_name],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             return package_name.lower() in result.stdout.lower()
         except subprocess.CalledProcessError:
             return False
-    
+
     def get_version(self, package_name: str) -> Optional[str]:
         """Get winget package version."""
         try:
@@ -250,10 +249,10 @@ class WingetManager(PackageManager):
                 ["winget", "list", package_name],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             # Parse version from winget output (simplified)
-            lines = result.stdout.strip().split('\n')
+            lines = result.stdout.strip().split("\n")
             for line in lines:
                 if package_name.lower() in line.lower():
                     parts = line.split()
@@ -262,18 +261,15 @@ class WingetManager(PackageManager):
             return None
         except subprocess.CalledProcessError:
             return None
-    
+
     def list_installed(self) -> List[str]:
         """List all winget packages."""
         try:
             result = subprocess.run(
-                ["winget", "list"],
-                capture_output=True,
-                text=True,
-                check=True
+                ["winget", "list"], capture_output=True, text=True, check=True
             )
             packages = []
-            lines = result.stdout.strip().split('\n')[2:]  # Skip header
+            lines = result.stdout.strip().split("\n")[2:]
             for line in lines:
                 if line.strip():
                     packages.append(line.split()[0])
@@ -284,48 +280,48 @@ class WingetManager(PackageManager):
 
 class AptManager(PackageManager):
     """APT package manager for Linux."""
-    
+
     def install(self, package_name: str) -> bool:
         """Install package using apt."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["sudo", "apt", "install", "-y", package_name],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to install {package_name}: {e.stderr}")
             return False
-    
+
     def uninstall(self, package_name: str) -> bool:
         """Uninstall package using apt."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["sudo", "apt", "remove", "-y", package_name],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully uninstalled {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to uninstall {package_name}: {e.stderr}")
             return False
-    
+
     def upgrade(self, package_name: str) -> bool:
         """Upgrade package using apt."""
         try:
             # First update package lists
             subprocess.run(["sudo", "apt", "update"], capture_output=True, check=True)
-            
-            result = subprocess.run(
+
+            subprocess.run(
                 ["sudo", "apt", "upgrade", "-y", package_name],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully upgraded {package_name}")
             return True
@@ -335,18 +331,18 @@ class AptManager(PackageManager):
                 return True
             console.print(f"❌ Failed to upgrade {package_name}: {e.stderr}")
             return False
-    
+
     def upgrade_all(self) -> bool:
         """Upgrade all apt packages."""
         try:
             # First update package lists
             subprocess.run(["sudo", "apt", "update"], capture_output=True, check=True)
-            
-            result = subprocess.run(
+
+            subprocess.run(
                 ["sudo", "apt", "upgrade", "-y"],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print("✅ Successfully upgraded all packages")
             return True
@@ -356,30 +352,24 @@ class AptManager(PackageManager):
                 return True
             console.print(f"❌ Failed to upgrade packages: {e.stderr}")
             return False
-    
+
     def is_installed(self, package_name: str) -> bool:
         """Check if package is installed via apt."""
         try:
             result = subprocess.run(
-                ["dpkg", "-l", package_name],
-                capture_output=True,
-                text=True,
-                check=True
+                ["dpkg", "-l", package_name], capture_output=True, text=True, check=True
             )
             return "ii" in result.stdout
         except subprocess.CalledProcessError:
             return False
-    
+
     def get_version(self, package_name: str) -> Optional[str]:
         """Get apt package version."""
         try:
             result = subprocess.run(
-                ["dpkg", "-l", package_name],
-                capture_output=True,
-                text=True,
-                check=True
+                ["dpkg", "-l", package_name], capture_output=True, text=True, check=True
             )
-            lines = result.stdout.strip().split('\n')
+            lines = result.stdout.strip().split("\n")
             for line in lines:
                 if line.startswith("ii") and package_name in line:
                     parts = line.split()
@@ -388,18 +378,15 @@ class AptManager(PackageManager):
             return None
         except subprocess.CalledProcessError:
             return None
-    
+
     def list_installed(self) -> List[str]:
         """List all apt packages."""
         try:
             result = subprocess.run(
-                ["dpkg", "-l"],
-                capture_output=True,
-                text=True,
-                check=True
+                ["dpkg", "-l"], capture_output=True, text=True, check=True
             )
             packages = []
-            lines = result.stdout.strip().split('\n')
+            lines = result.stdout.strip().split("\n")
             for line in lines:
                 if line.startswith("ii"):
                     packages.append(line.split()[1])
@@ -410,51 +397,51 @@ class AptManager(PackageManager):
 
 class PoetryManager(PackageManager):
     """Poetry package manager for Python."""
-    
+
     def __init__(self, project_path: Optional[Path] = None):
         self.project_path = project_path or Path.cwd()
-    
+
     def install(self, package_name: str) -> bool:
         """Install package using poetry."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["poetry", "add", package_name],
                 cwd=self.project_path,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to install {package_name}: {e.stderr}")
             return False
-    
+
     def uninstall(self, package_name: str) -> bool:
         """Uninstall package using poetry."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["poetry", "remove", package_name],
                 cwd=self.project_path,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully uninstalled {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to uninstall {package_name}: {e.stderr}")
             return False
-    
+
     def upgrade(self, package_name: str) -> bool:
         """Upgrade package using poetry."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["poetry", "update", package_name],
                 cwd=self.project_path,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print(f"✅ Successfully upgraded {package_name}")
             return True
@@ -464,16 +451,16 @@ class PoetryManager(PackageManager):
                 return True
             console.print(f"❌ Failed to upgrade {package_name}: {e.stderr}")
             return False
-    
+
     def upgrade_all(self) -> bool:
         """Upgrade all poetry packages."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["poetry", "update"],
                 cwd=self.project_path,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             console.print("✅ Successfully upgraded all packages")
             return True
@@ -483,21 +470,21 @@ class PoetryManager(PackageManager):
                 return True
             console.print(f"❌ Failed to upgrade packages: {e.stderr}")
             return False
-    
+
     def is_installed(self, package_name: str) -> bool:
         """Check if package is in poetry project."""
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["poetry", "show", package_name],
                 cwd=self.project_path,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             return True
         except subprocess.CalledProcessError:
             return False
-    
+
     def get_version(self, package_name: str) -> Optional[str]:
         """Get poetry package version."""
         try:
@@ -506,16 +493,16 @@ class PoetryManager(PackageManager):
                 cwd=self.project_path,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
-            lines = result.stdout.strip().split('\n')
+            lines = result.stdout.strip().split("\n")
             for line in lines:
                 if line.startswith("version"):
                     return line.split(":")[1].strip()
             return None
         except subprocess.CalledProcessError:
             return None
-    
+
     def list_installed(self) -> List[str]:
         """List all poetry packages."""
         try:
@@ -524,10 +511,10 @@ class PoetryManager(PackageManager):
                 cwd=self.project_path,
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             packages = []
-            lines = result.stdout.strip().split('\n')
+            lines = result.stdout.strip().split("\n")
             for line in lines:
                 if line.strip():
                     packages.append(line.split()[0])
@@ -538,11 +525,11 @@ class PoetryManager(PackageManager):
 
 class PackageManagerFactory:
     """Factory for creating package managers."""
-    
+
     _managers: Dict[str, PackageManager] = {}
-    
+
     @classmethod
-    def get_manager(cls, manager_type: str, **kwargs) -> PackageManager:
+    def get_manager(cls, manager_type: str, **kwargs: Any) -> PackageManager:
         """Get package manager instance."""
         if manager_type not in cls._managers:
             if manager_type == "brew":
@@ -555,14 +542,14 @@ class PackageManagerFactory:
                 cls._managers[manager_type] = PoetryManager(**kwargs)
             else:
                 raise ValueError(f"Unknown package manager: {manager_type}")
-        
+
         return cls._managers[manager_type]
-    
+
     @classmethod
     def get_default_manager(cls) -> PackageManager:
         """Get default package manager for current OS."""
         import platform
-        
+
         os_type = platform.system().lower()
         if os_type == "darwin":
             return cls.get_manager("brew")

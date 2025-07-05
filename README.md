@@ -141,7 +141,7 @@ If you run `install-sync repo setup` and a repository with the same name already
 > ```bash
 > # Option 1: Modern Poetry (2.0+) - run the output of poetry env activate
 > $(poetry env activate)
-> 
+>
 > # Option 2: Manual activation (works with all Poetry versions)
 > source $(poetry env info --path)/bin/activate  # Linux/macOS
 > $(poetry env info --path)\Scripts\activate     # Windows
@@ -242,7 +242,7 @@ install-sync creates a **dedicated tracking directory** (default: `~/package-tra
 ~/package-tracking/
 ├── .git/              # Git repository
 ├── .gitignore         # Excludes local config files
-├── README.md          # Repository documentation  
+├── README.md          # Repository documentation
 ├── config.json        # Package tracking data (synced)
 └── repo-config.json   # Local repository settings (excluded)
 ```

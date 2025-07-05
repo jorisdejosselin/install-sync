@@ -10,18 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Generate Release Notes
         id: release_notes
         run: |
           # Get the previous tag
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
-          
+
           # Generate changelog
           if [ -n "$PREV_TAG" ]; then
             echo "## Changes since $PREV_TAG" > release_notes.md
@@ -30,48 +30,48 @@ jobs:
             echo "## Initial Release" > release_notes.md
             echo "First release of install-sync" >> release_notes.md
           fi
-          
+
           # Add installation instructions
           cat >> release_notes.md << 'EOF'
-          
+
           ## Installation
-          
+
           ### Download Binary
           Download the appropriate binary for your platform from the assets below:
           - **Linux**: `install-sync-ubuntu-latest`
           - **Windows**: `install-sync-windows-latest.exe`
           - **macOS**: `install-sync-macos-latest`
-          
+
           Make the binary executable and place it in your PATH.
-          
+
           ### Install via pip
           ```bash
           pip install install-sync
           ```
-          
+
           ### Install via Poetry
           ```bash
           poetry add install-sync
           ```
-          
+
           ## Usage
-          
+
           ```bash
           # Set up repository
           install-sync repo setup
-          
+
           # Install packages
           install-sync install git
           install-sync install python3
-          
+
           # List packages
           install-sync list
-          
+
           # Show info
           install-sync info
           ```
           EOF
-      
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -99,25 +99,25 @@ jobs:
           - os: macos-latest
             artifact_name: install-sync-macos
             asset_name: install-sync-macos
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
-      
+
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
           version: latest
           virtualenvs-create: true
           virtualenvs-in-project: true
-      
+
       - name: Install dependencies
         run: poetry install --no-interaction
-      
+
       - name: Build executable
         run: |
           if python -c "import sys; exit(0 if sys.version_info >= (3, 13) else 1)"; then
@@ -133,7 +133,7 @@ jobs:
               --add-data "install_sync:install_sync" \
               install_sync/main.py
           fi
-      
+
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
