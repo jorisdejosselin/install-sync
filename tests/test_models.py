@@ -1,11 +1,9 @@
 """Tests for models module."""
 
-import pytest
-
 from install_sync.models import Config, MachineProfile, PackageInfo
 
 
-def test_machine_profile_creation():
+def test_machine_profile_creation() -> None:
     """Test machine profile creation."""
     profile = MachineProfile.create_current()
 
@@ -16,7 +14,7 @@ def test_machine_profile_creation():
     assert len(profile.profile_id) == 8
 
 
-def test_config_package_management():
+def test_config_package_management() -> None:
     """Test config package management."""
     config = Config()
     profile_id = "test123"
@@ -36,7 +34,7 @@ def test_config_package_management():
     assert packages[0].name == "git"
 
 
-def test_package_info_creation():
+def test_package_info_creation() -> None:
     """Test package info creation."""
     package = PackageInfo(name="python", package_manager="brew", version="3.11.0")
 

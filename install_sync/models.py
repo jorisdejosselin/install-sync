@@ -83,6 +83,7 @@ class GlobalConfig(BaseModel):
     git_auto_commit: Optional[bool] = None
     git_auto_push: Optional[bool] = None
     git_prompt: bool = True
+    prefer_ssh_remotes: bool = True  # Default to SSH for better security
     default_tracking_directory: Optional[str] = None
     package_managers: Dict[str, str] = Field(default_factory=dict)
 

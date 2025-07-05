@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """Build script for install-sync."""
 
-import platform
 import subprocess
 import sys
 from pathlib import Path
 
 
-def build_with_nuitka():
+def build_with_nuitka() -> None:
     """Build using Nuitka (for Python 3.13+)."""
     cmd = [
         "poetry",
@@ -23,7 +22,7 @@ def build_with_nuitka():
     print("✅ Built with Nuitka")
 
 
-def build_with_pyinstaller():
+def build_with_pyinstaller() -> None:
     """Build using PyInstaller (for Python < 3.13)."""
     cmd = [
         "poetry",
@@ -41,10 +40,11 @@ def build_with_pyinstaller():
     print("✅ Built with PyInstaller")
 
 
-def main():
+def main() -> None:
     """Main build function."""
     print(
-        f"🔧 Building install-sync for Python {sys.version_info.major}.{sys.version_info.minor}"
+        f"🔧 Building install-sync for Python "
+        f"{sys.version_info.major}.{sys.version_info.minor}"
     )
 
     # Install build dependencies

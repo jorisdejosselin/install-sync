@@ -335,7 +335,7 @@ class GitManager:
     def get_status(self) -> str:
         """Get git status."""
         try:
-            return self.repo.git.status()
+            return str(self.repo.git.status())
         except GitCommandError as e:
             console.print(f"❌ Failed to get git status: {e}")
             return ""

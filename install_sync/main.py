@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from .config_utils import load_global_config, save_global_config
 from .git_manager import GitManager
 from .models import Config, GitConfig, GlobalConfig, MachineProfile, PackageInfo
 from .package_managers import PackageManagerFactory
@@ -51,35 +52,32 @@ def debug_print(message: str) -> None:
         console.print(f"🐛 [dim]{message}[/dim]")
 
 
-def load_global_config() -> GlobalConfig:
-    """Load global configuration from ~/.install-sync.config"""
-    global_config_path = Path.home() / ".install-sync.config"
-    if global_config_path.exists():
-        try:
-            with open(global_config_path, "r") as f:
-                data = json.load(f)
-                return GlobalConfig(**data)
-        except Exception as e:
-            debug_print(f"Failed to load global config: {e}")
-    return GlobalConfig()
-
-
-def save_global_config(config: GlobalConfig) -> None:
-    """Save global configuration to ~/.install-sync.config"""
-    global_config_path = Path.home() / ".install-sync.config"
+def load_global_config_with_debug() -> GlobalConfig:
+    """Load global configuration with debug output."""
     try:
-        with open(global_config_path, "w") as f:
-            json.dump(config.dict(), f, indent=2)
-        debug_print(f"Saved global config to {global_config_path}")
+        config = load_global_config()
+        debug_print("Loaded global configuration")
+        return config
+    except Exception as e:
+        debug_print(f"Failed to load global config: {e}")
+        return GlobalConfig()
+
+
+def save_global_config_with_debug(config: GlobalConfig) -> None:
+    """Save global configuration with debug output."""
+    try:
+        save_global_config(config)
+        debug_print("Saved global configuration")
     except Exception as e:
         console.print(f"⚠️  Failed to save global config: {e}")
+
 
 
 def should_perform_git_operations() -> bool:
     """Determine if git operations should be performed based on config."""
     from rich.prompt import Confirm
 
-    global_config = load_global_config()
+    global_config = load_global_config_with_debug()
 
     # Check CLI overrides first
     if _session_git_options["no_git"]:
@@ -97,7 +95,7 @@ def should_perform_git_operations() -> bool:
 
     # If prompting is enabled, ask user
     if global_config.git_prompt:
-        return Confirm.ask("📝 Commit and push this change to git?", default=True)
+        return bool(Confirm.ask("📝 Commit and push this change to git?", default=True))
 
     # Default behavior
     return True
@@ -989,11 +987,11 @@ def clone(
                     machines = config_data.get("machines", {})
                     if current_machine.profile_id in machines:
                         console.print(
-                            f"   ✅ This machine is already tracked in the repository"
+                            "   ✅ This machine is already tracked in the repository"
                         )
                     else:
                         console.print(
-                            f"   🆕 This is a new machine - will be added when you install packages"
+                            "   🆕 This is a new machine - will be added when you install packages"
                         )
             except Exception:
                 pass
@@ -1140,12 +1138,12 @@ def setup() -> None:
             repo_manager._save_config(config)
 
             console.print(
-                f"\n✅ [bold green]Package tracking setup complete![/bold green]"
+                "\n✅ [bold green]Package tracking setup complete![/bold green]"
             )
             console.print(f"📁 Tracking directory: {tracking_dir}")
             console.print(f"🔗 Remote repository: {config.clone_url}")
             console.print(
-                f"\n💡 [dim]To use install-sync from anywhere, set this environment variable:[/dim]"
+                "\n💡 [dim]To use install-sync from anywhere, set this environment variable:[/dim]"
             )
             console.print(f"[cyan]export INSTALL_SYNC_DIR={tracking_dir}[/cyan]")
 
@@ -1257,7 +1255,7 @@ def fix() -> None:
         try:
             git_manager.repo.remote("origin")
             console.print("✅ Remote 'origin' already configured")
-        except:
+        except Exception:
             console.print("🔗 Adding remote origin...")
             git_manager.add_remote("origin", config.clone_url)
 
@@ -1312,7 +1310,7 @@ def delete() -> None:
             return
 
         console.print("\n⚠️  [bold red]WARNING: Destructive Operation![/bold red]")
-        console.print("This will permanently delete the repository:")
+        console.print("This will permanently delete the repository: ")
         console.print(f"  • Platform: {config.platform.title()}")
         console.print(f"  • Repository: {config.repo_name}")
         console.print(f"  • URL: {config.clone_url}")
@@ -1376,7 +1374,7 @@ app.add_typer(config_app, name="config")
 @config_app.command()
 def show() -> None:
     """Show current global configuration."""
-    global_config = load_global_config()
+    global_config = load_global_config_with_debug()
     global_config_path = Path.home() / ".install-sync.config"
 
     config_info = f"""
@@ -1388,6 +1386,7 @@ def show() -> None:
 • Auto-commit: {global_config.git_auto_commit if global_config.git_auto_commit is not None else 'Default (enabled)'}
 • Auto-push: {global_config.git_auto_push if global_config.git_auto_push is not None else 'Default (enabled)'}
 • Show prompts: {'✅' if global_config.git_prompt else '❌'}
+• Remote preference: {'SSH' if global_config.prefer_ssh_remotes else 'HTTPS'}
 
 [bold]Directories[/bold]
 • Default tracking directory: {global_config.default_tracking_directory or 'Default (~/package-tracking)'}
@@ -1419,12 +1418,17 @@ def config_set(
     git_prompt: Optional[bool] = typer.Option(
         None, "--git-prompt/--no-git-prompt", help="Enable/disable git prompts"
     ),
+    prefer_ssh_remotes: Optional[bool] = typer.Option(
+        None,
+        "--prefer-ssh/--prefer-https",
+        help="Prefer SSH over HTTPS for git remotes",
+    ),
     tracking_directory: Optional[str] = typer.Option(
         None, "--tracking-directory", help="Set default tracking directory"
     ),
 ) -> None:
     """Set global configuration options."""
-    global_config = load_global_config()
+    global_config = load_global_config_with_debug()
 
     updated = False
 
@@ -1443,6 +1447,12 @@ def config_set(
         updated = True
         console.print(f"✅ Set git prompts: {git_prompt}")
 
+    if prefer_ssh_remotes is not None:
+        global_config.prefer_ssh_remotes = prefer_ssh_remotes
+        updated = True
+        protocol = "SSH" if prefer_ssh_remotes else "HTTPS"
+        console.print(f"✅ Set git remote preference: {protocol}")
+
     if tracking_directory is not None:
         # Expand and validate path
         expanded_path = Path(tracking_directory).expanduser().resolve()
@@ -1451,7 +1461,7 @@ def config_set(
         console.print(f"✅ Set default tracking directory: {expanded_path}")
 
     if updated:
-        save_global_config(global_config)
+        save_global_config_with_debug(global_config)
         console.print("💾 Global configuration saved")
     else:
         console.print("ℹ️  No changes made")

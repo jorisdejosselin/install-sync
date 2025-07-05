@@ -8,9 +8,58 @@ import requests
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
+from .config_utils import load_global_config
 from .models import RepoConfig
 
 console = Console()
+
+
+def convert_https_to_ssh(https_url: str) -> str:
+    """Convert HTTPS git URL to SSH format."""
+    # Handle GitHub URLs
+    if "https://github.com/" in https_url:
+        path = https_url.replace("https://github.com/", "")
+        return f"git@github.com:{path}"
+
+    # Handle GitLab URLs
+    if "https://gitlab.com/" in https_url:
+        path = https_url.replace("https://gitlab.com/", "")
+        return f"git@gitlab.com:{path}"
+
+    # For other git providers, try to parse generically
+    if https_url.startswith("https://"):
+        # Extract domain and path
+        without_protocol = https_url[8:]  # Remove "https://"
+        if "/" in without_protocol:
+            domain, path = without_protocol.split("/", 1)
+            return f"git@{domain}:{path}"
+
+    # If we can't convert, return original
+    return https_url
+
+
+def convert_ssh_to_https(ssh_url: str) -> str:
+    """Convert SSH git URL to HTTPS format."""
+    # Handle GitHub URLs
+    if ssh_url.startswith("git@github.com:"):
+        path = ssh_url.replace("git@github.com:", "")
+        return f"https://github.com/{path}"
+
+    # Handle GitLab URLs
+    if ssh_url.startswith("git@gitlab.com:"):
+        path = ssh_url.replace("git@gitlab.com:", "")
+        return f"https://gitlab.com/{path}"
+
+    # For other git providers, try to parse generically
+    if ssh_url.startswith("git@"):
+        # Extract domain and path
+        without_prefix = ssh_url[4:]  # Remove "git@"
+        if ":" in without_prefix:
+            domain, path = without_prefix.split(":", 1)
+            return f"https://{domain}/{path}"
+
+    # If we can't convert, return original
+    return ssh_url
 
 
 class RepoManager:
@@ -58,20 +107,20 @@ class RepoManager:
             console.print(
                 f"✅ Successfully created GitHub repository: {repo_data['html_url']}"
             )
-            return repo_data["clone_url"]
+            return str(repo_data["clone_url"])
         except requests.RequestException as e:
             console.print(f"❌ Failed to create GitHub repository: {e}")
             if hasattr(e, "response") and e.response is not None:
                 if e.response.status_code == 401:
                     console.print(
-                        "🔑 [red]Authentication failed[/red] - Check your token:"
+                        "🔑 [red]Authentication failed[/red] - Check your token: "
                     )
                     console.print("   • Ensure token has [cyan]repo[/cyan] permissions")
                     console.print("   • Verify token hasn't expired")
                     console.print("   • See TOKEN_SETUP.md for detailed instructions")
                 elif e.response.status_code == 403:
                     console.print(
-                        "🚫 [red]Permission denied[/red] - Token may lack required permissions:"
+                        "🚫 [red]Permission denied[/red] - Token may lack required permissions: "
                     )
                     console.print(
                         "   • Token needs [cyan]repo[/cyan] scope for private repositories"
@@ -104,20 +153,20 @@ class RepoManager:
             console.print(
                 f"✅ Successfully created GitLab repository: {repo_data['web_url']}"
             )
-            return repo_data["http_url_to_repo"]
+            return str(repo_data["http_url_to_repo"])
         except requests.RequestException as e:
             console.print(f"❌ Failed to create GitLab repository: {e}")
             if hasattr(e, "response") and e.response is not None:
                 if e.response.status_code == 401:
                     console.print(
-                        "🔑 [red]Authentication failed[/red] - Check your token:"
+                        "🔑 [red]Authentication failed[/red] - Check your token: "
                     )
                     console.print("   • Ensure token has [cyan]api[/cyan] scope")
                     console.print("   • Verify token hasn't expired")
                     console.print("   • See TOKEN_SETUP.md for detailed instructions")
                 elif e.response.status_code == 403:
                     console.print(
-                        "🚫 [red]Permission denied[/red] - Token may lack required permissions:"
+                        "🚫 [red]Permission denied[/red] - Token may lack required permissions: "
                     )
                     console.print(
                         "   • Token needs [cyan]api[/cyan] scope for repository creation"
@@ -311,7 +360,7 @@ class RepoManager:
                 return None
             elif choice == "delete":
                 console.print(
-                    f"\n⚠️  [bold red]WARNING: This will permanently delete the existing repository![/bold red]"
+                    "\n⚠️  [bold red]WARNING: This will permanently delete the existing repository![/bold red]"
                 )
                 console.print(
                     "This action cannot be undone. All data in the repository will be lost."
@@ -326,7 +375,7 @@ class RepoManager:
                     console.print("❌ Deletion cancelled")
                     return None
 
-                console.print(f"\n🗑️  Deleting existing repository...")
+                console.print("\n🗑️  Deleting existing repository...")
                 if platform == "github":
                     success = self.delete_github_repo(repo_name, token)
                 else:
@@ -361,14 +410,23 @@ class RepoManager:
             clone_url = self.create_gitlab_repo(repo_name, token, private)
 
         if clone_url:
+            # Check if user prefers SSH remotes
+            global_config = load_global_config()
+            if global_config.prefer_ssh_remotes:
+                ssh_url = convert_https_to_ssh(clone_url)
+                console.print(f"🔐 Using SSH remote: {ssh_url}")
+                final_clone_url = ssh_url
+            else:
+                final_clone_url = clone_url
+
             # Save configuration
             config = RepoConfig(
-                platform=platform, repo_name=repo_name, clone_url=clone_url
+                platform=platform, repo_name=repo_name, clone_url=final_clone_url
             )
             self._save_config(config)
             self.config = config
 
-            console.print(f"\n✅ [bold green]Setup Complete![/bold green]")
+            console.print("\n✅ [bold green]Setup Complete![/bold green]")
             console.print(f"Repository: {clone_url}")
             console.print(
                 "You can now use 'install-sync' to manage your software installations\n"
