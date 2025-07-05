@@ -25,9 +25,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Poetry
-        uses: snok/install-poetry@v1
+        uses: snok/install-poetry@v2
         with:
-          version: 1.8.3
           virtualenvs-create: true
           virtualenvs-in-project: true
 
@@ -73,30 +72,31 @@ jobs:
           python-version: "3.11"
 
       - name: Install Poetry
-        uses: snok/install-poetry@v1
+        uses: snok/install-poetry@v2
         with:
-          version: 1.8.3
           virtualenvs-create: true
           virtualenvs-in-project: true
 
       - name: Install dependencies
         run: poetry install --no-interaction
 
-      - name: Build executable
+      - name: Build executable (Unix)
+        if: runner.os != 'Windows'
         run: |
-          if python -c "import sys; exit(0 if sys.version_info >= (3, 13) else 1)"; then
-            poetry install --with build
-            poetry run nuitka --onefile \
-              --output-filename=install-sync-${{ matrix.os }} \
-              --include-package=install_sync \
-              install_sync/main.py
-          else
-            poetry install --with build
-            poetry run pyinstaller --onefile \
-              --name install-sync-${{ matrix.os }} \
-              --add-data "install_sync:install_sync" \
-              install_sync/main.py
-          fi
+          poetry install --with build
+          poetry run pyinstaller --onefile \
+            --name install-sync-${{ matrix.os }} \
+            --add-data "install_sync:install_sync" \
+            install_sync/main.py
+
+      - name: Build executable (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          poetry install --with build
+          poetry run pyinstaller --onefile \
+            --name install-sync-${{ matrix.os }} \
+            --add-data "install_sync;install_sync" \
+            install_sync/main.py
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
@@ -144,9 +144,8 @@ jobs:
           python-version: "3.11"
 
       - name: Install Poetry
-        uses: snok/install-poetry@v1
+        uses: snok/install-poetry@v2
         with:
-          version: 1.8.3
           virtualenvs-create: true
           virtualenvs-in-project: true
 

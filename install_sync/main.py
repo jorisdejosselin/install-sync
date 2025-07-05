@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 import typer
+from typer import Context
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -24,6 +25,8 @@ app = typer.Typer(
 )
 
 console = Console()
+
+
 
 # Global state
 config_path = Path("config.json")
@@ -100,8 +103,9 @@ def should_perform_git_operations() -> bool:
     return True
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main_callback(
+    ctx: Context,
     debug: bool = typer.Option(
         False, "--debug", help="Enable debug mode for verbose output"
     ),
@@ -118,6 +122,10 @@ def main_callback(
     # Store git preferences globally for this session
     global _session_git_options
     _session_git_options = {"no_git": no_git, "auto_git": auto_git}
+    
+    # Show help when no command is provided
+    if ctx.invoked_subcommand is None:
+        console.print(ctx.get_help())
 
 
 def _create_gitignore() -> None:
@@ -850,6 +858,14 @@ repo_app = typer.Typer(name="repo", help="Repository management commands")
 app.add_typer(repo_app, name="repo")
 
 
+@repo_app.callback(invoke_without_command=True)
+def repo_callback(ctx: Context) -> None:
+    """Repository management commands."""
+    if ctx.invoked_subcommand is None:
+        # Show help when no subcommand is provided
+        console.print(ctx.get_help())
+
+
 @repo_app.command()
 def clone(
     git_url: str = typer.Argument(..., help="Git repository URL to clone"),
@@ -1380,6 +1396,14 @@ def delete() -> None:
 # Config management commands
 config_app = typer.Typer(name="config", help="Global configuration management")
 app.add_typer(config_app, name="config")
+
+
+@config_app.callback(invoke_without_command=True)
+def config_callback(ctx: Context) -> None:
+    """Global configuration management."""
+    if ctx.invoked_subcommand is None:
+        # Show help when no subcommand is provided
+        console.print(ctx.get_help())
 
 
 @config_app.command()
