@@ -93,7 +93,8 @@ class RepoManager:
         }
         data = {
             "name": repo_name,
-            "description": "Personal software package tracking across multiple machines - managed by install-sync",
+            "description": "Personal software package tracking across multiple "
+            "machines - managed by install-sync",
             "private": private,
             "auto_init": False,  # Don't auto-init to avoid conflicts
             # Note: We'll create our own initial files
@@ -140,7 +141,8 @@ class RepoManager:
         headers = {"Private-Token": token, "Content-Type": "application/json"}
         data = {
             "name": repo_name,
-            "description": "Personal software package tracking across multiple machines - managed by install-sync",
+            "description": "Personal software package tracking across multiple "
+            "machines - managed by install-sync",
             "visibility": "private" if private else "public",
             "initialize_with_readme": False,  # Don't auto-init to avoid conflicts
         }
@@ -298,7 +300,8 @@ class RepoManager:
         """Interactive repository setup."""
         console.print("\n🚀 [bold]install-sync Repository Setup[/bold]")
         console.print(
-            "This will create a remote repository to track your personal software packages across all your machines\n"
+            "This will create a remote repository to track your personal "
+            "software packages across all your machines\n"
         )
 
         # Choose platform
@@ -308,7 +311,8 @@ class RepoManager:
 
         # Get repository name
         console.print(
-            "💡 [dim]Suggested names: my-software-packages, personal-package-tracker, software-inventory[/dim]"
+            "💡 [dim]Suggested names: my-software-packages, "
+            "personal-package-tracker, software-inventory[/dim]"
         )
         repo_name = Prompt.ask("Repository name", default="my-software-packages")
 
@@ -331,7 +335,8 @@ class RepoManager:
                 "   [dim]Note: 'api' includes repository creation AND git push permissions[/dim]"
             )
             console.print(
-                "🔗 Create token at: [link]https://gitlab.com/-/profile/personal_access_tokens[/link]"
+                "🔗 Create token at: "
+                "[link]https://gitlab.com/-/profile/personal_access_tokens[/link]"
             )
 
         console.print(
@@ -346,7 +351,8 @@ class RepoManager:
         console.print(f"\n🔍 Checking if repository '{repo_name}' already exists...")
         if self.check_repo_exists(repo_name, token, platform):
             console.print(
-                f"⚠️  [yellow]Repository '{repo_name}' already exists on {platform.title()}[/yellow]"
+                f"⚠️  [yellow]Repository '{repo_name}' already exists "
+                f"on {platform.title()}[/yellow]"
             )
 
             choice = Prompt.ask(
@@ -360,7 +366,8 @@ class RepoManager:
                 return None
             elif choice == "delete":
                 console.print(
-                    "\n⚠️  [bold red]WARNING: This will permanently delete the existing repository![/bold red]"
+                    "\n⚠️  [bold red]WARNING: This will permanently delete "
+                    "the existing repository![/bold red]"
                 )
                 console.print(
                     "This action cannot be undone. All data in the repository will be lost."
@@ -395,7 +402,8 @@ class RepoManager:
                 # Check if the new name also exists
                 if self.check_repo_exists(repo_name, token, platform):
                     console.print(
-                        f"❌ Repository '{repo_name}' also already exists. Please try a different name or choose to delete the existing one."
+                        f"❌ Repository '{repo_name}' also already exists. "
+                        f"Please try a different name or choose to delete the existing one."
                     )
                     return None
 

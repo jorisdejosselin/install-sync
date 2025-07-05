@@ -150,7 +150,8 @@ def _create_readme(repo_name: str) -> None:
     """Create README.md for the repository."""
     readme_content = f"""# {repo_name}
 
-Personal software package tracking across multiple machines using [install-sync](https://github.com/joris/install-sync).
+Personal software package tracking across multiple machines using
+[install-sync](https://github.com/joris/install-sync).
 
 ## Files
 
@@ -360,7 +361,8 @@ def install(
                     git_manager.push_changes()
                 else:
                     console.print(
-                        "ℹ️  Not a git repository. Run 'install-sync repo setup' to enable git tracking."
+                        "ℹ️  Not a git repository. Run 'install-sync repo setup' "
+                        "to enable git tracking."
                     )
             except Exception as e:
                 console.print(f"⚠️  Git operations failed: {e}")
@@ -470,7 +472,8 @@ def uninstall(
                     git_manager.push_changes()
                 else:
                     console.print(
-                        "ℹ️  Not a git repository. Run 'install-sync repo setup' to enable git tracking."
+                        "ℹ️  Not a git repository. Run 'install-sync repo setup' "
+                        "to enable git tracking."
                     )
             except Exception as e:
                 console.print(f"⚠️  Git operations failed: {e}")
@@ -589,12 +592,16 @@ def upgrade(
                             tracking_dir, config.git, debug_mode=is_debug_mode()
                         )
                         if git_manager.is_git_repo():
-                            message = f"Upgrade {package} from {old_version} to {new_version} on {machine.machine_name}"
+                            message = (
+                                f"Upgrade {package} from {old_version} to {new_version} "
+                                f"on {machine.machine_name}"
+                            )
                             git_manager.commit_changes(message)
                             git_manager.push_changes()
                         else:
                             console.print(
-                                "ℹ️  Not a git repository. Run 'install-sync repo setup' to enable git tracking."
+                                "ℹ️  Not a git repository. Run 'install-sync repo setup' "
+                                "to enable git tracking."
                             )
                     except Exception as e:
                         console.print(f"⚠️  Git operations failed: {e}")
@@ -675,12 +682,16 @@ def upgrade(
                         tracking_dir, config.git, debug_mode=is_debug_mode()
                     )
                     if git_manager.is_git_repo():
-                        message = f"Upgrade {len(updated_packages)} packages on {machine.machine_name}"
+                        message = (
+                            f"Upgrade {len(updated_packages)} packages "
+                            f"on {machine.machine_name}"
+                        )
                         git_manager.commit_changes(message)
                         git_manager.push_changes()
                     else:
                         console.print(
-                            "ℹ️  Not a git repository. Run 'install-sync repo setup' to enable git tracking."
+                            "ℹ️  Not a git repository. Run 'install-sync repo setup' "
+                            "to enable git tracking."
                         )
                 except Exception as e:
                     console.print(f"⚠️  Git operations failed: {e}")
@@ -1129,7 +1140,8 @@ def setup() -> None:
                 except Exception as sync_e:
                     console.print(f"⚠️  Push warning: {sync_e}")
                     console.print(
-                        "💡 [dim]Repository created successfully. Run 'install-sync repo fix' to complete sync[/dim]"
+                        "💡 [dim]Repository created successfully. Run "
+                        "'install-sync repo fix' to complete sync[/dim]"
                     )
 
             # Update the repo config to include the tracking directory
@@ -1376,19 +1388,30 @@ def show() -> None:
     global_config = load_global_config_with_debug()
     global_config_path = Path.home() / ".install-sync.config"
 
+    # Build config info in parts to avoid long lines
+    auto_commit = global_config.git_auto_commit
+    auto_commit_str = auto_commit if auto_commit is not None else "Default (enabled)"
+
+    auto_push = global_config.git_auto_push
+    auto_push_str = auto_push if auto_push is not None else "Default (enabled)"
+
+    tracking_dir = (
+        global_config.default_tracking_directory or "Default (~/package-tracking)"
+    )
+
     config_info = f"""
 [bold]Global Configuration[/bold]
 • Config file: {global_config_path}
 • File exists: {'✅' if global_config_path.exists() else '❌'}
 
 [bold]Git Settings[/bold]
-• Auto-commit: {global_config.git_auto_commit if global_config.git_auto_commit is not None else 'Default (enabled)'}
-• Auto-push: {global_config.git_auto_push if global_config.git_auto_push is not None else 'Default (enabled)'}
+• Auto-commit: {auto_commit_str}
+• Auto-push: {auto_push_str}
 • Show prompts: {'✅' if global_config.git_prompt else '❌'}
 • Remote preference: {'SSH' if global_config.prefer_ssh_remotes else 'HTTPS'}
 
 [bold]Directories[/bold]
-• Default tracking directory: {global_config.default_tracking_directory or 'Default (~/package-tracking)'}
+• Default tracking directory: {tracking_dir}
 
 [bold]Package Managers[/bold]
 """
