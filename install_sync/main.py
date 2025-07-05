@@ -2,6 +2,7 @@
 
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -430,6 +431,165 @@ def uninstall(
 
 
 @app.command()
+def upgrade(
+    package: Optional[str] = typer.Argument(None, help="Package name to upgrade (if not provided, upgrades all packages)"),
+    manager: Optional[str] = typer.Option(None, "--manager", "-m", help="Package manager to use (brew, winget, apt, poetry)"),
+    project_path: Optional[str] = typer.Option(None, "--project", "-p", help="Project path for poetry manager")
+):
+    """Upgrade a specific package or all packages."""
+    config = load_config()
+    machine = MachineProfile.create_current()
+    
+    # Update machine profile
+    config.machines[machine.profile_id] = machine
+    
+    if package:
+        # Upgrade specific package
+        if not config.is_package_installed(machine.profile_id, package):
+            console.print(f"📦 Package [bold]{package}[/bold] is not tracked in install-sync")
+            console.print("💡 Use 'install-sync install' to add it first")
+            return
+        
+        # Get package manager
+        try:
+            if manager:
+                if manager == "poetry" and project_path:
+                    pkg_manager = PackageManagerFactory.get_manager(manager, project_path=Path(project_path))
+                else:
+                    pkg_manager = PackageManagerFactory.get_manager(manager)
+            else:
+                # Try to determine from tracked packages
+                tracked_packages = config.get_current_machine_packages(machine.profile_id)
+                tracked_package = next((p for p in tracked_packages if p.name == package), None)
+                if tracked_package:
+                    manager = tracked_package.package_manager
+                    if manager == "poetry" and project_path:
+                        pkg_manager = PackageManagerFactory.get_manager(manager, project_path=Path(project_path))
+                    else:
+                        pkg_manager = PackageManagerFactory.get_manager(manager)
+                else:
+                    pkg_manager = PackageManagerFactory.get_default_manager()
+                    manager = pkg_manager.__class__.__name__.replace("Manager", "").lower()
+        except ValueError as e:
+            console.print(f"❌ {e}")
+            raise typer.Exit(1)
+        
+        # Check if actually installed
+        if not pkg_manager.is_installed(package):
+            console.print(f"📦 Package [bold]{package}[/bold] is not installed via {manager}")
+            return
+        
+        # Store old version
+        old_version = pkg_manager.get_version(package)
+        
+        # Upgrade package
+        console.print(f"⬆️  Upgrading [bold]{package}[/bold] using {manager}...")
+        
+        if pkg_manager.upgrade(package):
+            # Get new version
+            new_version = pkg_manager.get_version(package)
+            
+            # Update tracking if version changed
+            if old_version != new_version:
+                # Update the package info in tracking
+                tracked_packages = config.get_current_machine_packages(machine.profile_id)
+                for i, pkg in enumerate(tracked_packages):
+                    if pkg.name == package:
+                        config.packages[machine.profile_id][i].version = new_version
+                        config.packages[machine.profile_id][i].installed_at = datetime.now()
+                        break
+                
+                save_config(config)
+                console.print(f"📝 Updated [bold]{package}[/bold] version: {old_version} → {new_version}")
+                
+                # Git operations
+                if should_perform_git_operations():
+                    try:
+                        tracking_dir = get_tracking_directory()
+                        debug_print(f"Using tracking directory: {tracking_dir}")
+                        
+                        git_manager = GitManager(tracking_dir, config.git, debug_mode=is_debug_mode())
+                        if git_manager.is_git_repo():
+                            message = f"Upgrade {package} from {old_version} to {new_version} on {machine.machine_name}"
+                            git_manager.commit_changes(message)
+                            git_manager.push_changes()
+                        else:
+                            console.print("ℹ️  Not a git repository. Run 'install-sync repo setup' to enable git tracking.")
+                    except Exception as e:
+                        console.print(f"⚠️  Git operations failed: {e}")
+        else:
+            raise typer.Exit(1)
+    
+    else:
+        # Upgrade all packages
+        console.print("⬆️  Upgrading all packages...")
+        
+        # Get all unique package managers used
+        tracked_packages = config.get_current_machine_packages(machine.profile_id)
+        managers_used = set(pkg.package_manager for pkg in tracked_packages)
+        
+        if not managers_used:
+            console.print("📦 No packages tracked for this machine")
+            return
+        
+        updated_packages = []
+        
+        for manager_name in managers_used:
+            try:
+                if manager_name == "poetry" and project_path:
+                    pkg_manager = PackageManagerFactory.get_manager(manager_name, project_path=Path(project_path))
+                else:
+                    pkg_manager = PackageManagerFactory.get_manager(manager_name)
+                
+                console.print(f"⬆️  Upgrading {manager_name} packages...")
+                
+                # Store old versions
+                old_versions = {}
+                manager_packages = [pkg for pkg in tracked_packages if pkg.package_manager == manager_name]
+                for pkg in manager_packages:
+                    old_versions[pkg.name] = pkg_manager.get_version(pkg.name)
+                
+                # Upgrade all packages for this manager
+                if pkg_manager.upgrade_all():
+                    # Check for version changes
+                    for pkg in manager_packages:
+                        new_version = pkg_manager.get_version(pkg.name)
+                        if old_versions[pkg.name] != new_version:
+                            # Update tracking
+                            for i, tracked_pkg in enumerate(config.packages[machine.profile_id]):
+                                if tracked_pkg.name == pkg.name:
+                                    config.packages[machine.profile_id][i].version = new_version
+                                    config.packages[machine.profile_id][i].installed_at = datetime.now()
+                                    break
+                            updated_packages.append(f"{pkg.name}: {old_versions[pkg.name]} → {new_version}")
+                
+            except ValueError as e:
+                console.print(f"⚠️  Skipped {manager_name}: {e}")
+        
+        if updated_packages:
+            save_config(config)
+            console.print(f"📝 Updated {len(updated_packages)} packages")
+            
+            # Git operations
+            if should_perform_git_operations():
+                try:
+                    tracking_dir = get_tracking_directory()
+                    debug_print(f"Using tracking directory: {tracking_dir}")
+                    
+                    git_manager = GitManager(tracking_dir, config.git, debug_mode=is_debug_mode())
+                    if git_manager.is_git_repo():
+                        message = f"Upgrade {len(updated_packages)} packages on {machine.machine_name}"
+                        git_manager.commit_changes(message)
+                        git_manager.push_changes()
+                    else:
+                        console.print("ℹ️  Not a git repository. Run 'install-sync repo setup' to enable git tracking.")
+                except Exception as e:
+                    console.print(f"⚠️  Git operations failed: {e}")
+        else:
+            console.print("ℹ️  All packages are already up to date")
+
+
+@app.command()
 def list(
     all_machines: bool = typer.Option(False, "--all", "-a", help="Show packages for all machines")
 ):
@@ -573,6 +733,151 @@ def info():
 repo_app = typer.Typer(name="repo", help="Repository management commands")
 app.add_typer(repo_app, name="repo")
 
+
+@repo_app.command()
+def clone(
+    git_url: str = typer.Argument(..., help="Git repository URL to clone"),
+    directory: Optional[str] = typer.Option(None, "--directory", "-d", help="Directory to clone into"),
+):
+    """Clone an existing install-sync repository."""
+    from rich.prompt import Prompt, Confirm
+    import subprocess
+    
+    # Determine clone directory
+    if directory:
+        tracking_dir = Path(directory).expanduser().resolve()
+    else:
+        home_dir = Path.home()
+        default_tracking_dir = home_dir / "package-tracking"
+        
+        console.print(f"\n📁 [bold]Repository Clone Setup[/bold]")
+        console.print("Clone your existing install-sync repository to sync packages across machines.\\n")
+        
+        tracking_dir_input = Prompt.ask(
+            "Where should we clone the repository?",
+            default=str(default_tracking_dir)
+        )
+        tracking_dir = Path(tracking_dir_input).expanduser().resolve()
+    
+    # Check if directory exists
+    if tracking_dir.exists() and any(tracking_dir.iterdir()):
+        console.print(f"⚠️  Directory {tracking_dir} already exists and is not empty.")
+        
+        choice = Prompt.ask(
+            "What would you like to do?",
+            choices=["overwrite", "use-different", "cancel"],
+            default="use-different"
+        )
+        
+        if choice == "cancel":
+            console.print("❌ Clone cancelled")
+            return
+        elif choice == "use-different":
+            counter = 1
+            while (tracking_dir.parent / f"{tracking_dir.name}-{counter}").exists():
+                counter += 1
+            tracking_dir = tracking_dir.parent / f"{tracking_dir.name}-{counter}"
+            console.print(f"📁 Using directory: {tracking_dir}")
+        elif choice == "overwrite":
+            import shutil
+            if Confirm.ask(f"⚠️  This will delete all contents of {tracking_dir}. Continue?", default=False):
+                shutil.rmtree(tracking_dir)
+                console.print(f"🗑️  Cleared directory: {tracking_dir}")
+            else:
+                console.print("❌ Clone cancelled")
+                return
+    
+    # Create directory if it doesn't exist
+    tracking_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Clone repository
+    console.print(f"📥 Cloning repository from {git_url}...")
+    try:
+        result = subprocess.run(
+            ["git", "clone", git_url, str(tracking_dir)],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        console.print("✅ Repository cloned successfully!")
+        
+        # Verify it's an install-sync repository
+        config_file = tracking_dir / "config.json"
+        readme_file = tracking_dir / "README.md"
+        
+        if not config_file.exists():
+            console.print("⚠️  Warning: This doesn't appear to be an install-sync repository")
+            console.print("   Expected to find config.json file")
+        
+        # Create repo-config.json to track this setup
+        repo_config = {
+            "platform": "external",
+            "repo_name": tracking_dir.name,
+            "clone_url": git_url,
+            "tracking_directory": str(tracking_dir),
+            "created_at": datetime.now().isoformat()
+        }
+        
+        repo_config_file = tracking_dir / "repo-config.json"
+        with open(repo_config_file, 'w') as f:
+            json.dump(repo_config, f, indent=2)
+        
+        console.print(f"\\n✅ [bold green]Repository setup complete![/bold green]")
+        console.print(f"📁 Tracking directory: {tracking_dir}")
+        console.print(f"🔗 Repository URL: {git_url}")
+        console.print(f"\\n💡 [dim]To use install-sync from anywhere, set this environment variable:[/dim]")
+        console.print(f"[cyan]export INSTALL_SYNC_DIR={tracking_dir}[/cyan]")
+        
+        # Show current machine info and packages
+        console.print(f"\\n📊 [bold]Repository Contents:[/bold]")
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    config_data = json.load(f)
+                    machines = config_data.get("machines", {})
+                    packages = config_data.get("packages", {})
+                    
+                    console.print(f"• Machines tracked: {len(machines)}")
+                    total_packages = sum(len(pkg_list) for pkg_list in packages.values())
+                    console.print(f"• Total packages: {total_packages}")
+                    
+                    if machines:
+                        console.print(f"\\n🖥️  [bold]Existing Machines:[/bold]")
+                        for machine_id, machine_info in machines.items():
+                            machine_name = machine_info.get("machine_name", "Unknown")
+                            os_type = machine_info.get("os_type", "Unknown")
+                            pkg_count = len(packages.get(machine_id, []))
+                            console.print(f"   • {machine_name} ({os_type}) - {pkg_count} packages")
+            except Exception as e:
+                console.print(f"   ⚠️  Could not read repository contents: {e}")
+        
+        # Show current machine status
+        current_machine = MachineProfile.create_current()
+        console.print(f"\\n🔍 [bold]Current Machine:[/bold]")
+        console.print(f"   • Name: {current_machine.machine_name}")
+        console.print(f"   • OS: {current_machine.os_type}")
+        console.print(f"   • Profile ID: {current_machine.profile_id}")
+        
+        # Check if current machine is already tracked
+        if config_file.exists():
+            try:
+                with open(config_file, 'r') as f:
+                    config_data = json.load(f)
+                    machines = config_data.get("machines", {})
+                    if current_machine.profile_id in machines:
+                        console.print(f"   ✅ This machine is already tracked in the repository")
+                    else:
+                        console.print(f"   🆕 This is a new machine - will be added when you install packages")
+            except:
+                pass
+                
+    except subprocess.CalledProcessError as e:
+        console.print(f"❌ Failed to clone repository: {e.stderr}")
+        console.print("💡 Check that the repository URL is correct and accessible")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"❌ Clone failed: {e}")
+        raise typer.Exit(1)
 
 @repo_app.command()
 def setup():
@@ -935,8 +1240,8 @@ def show():
     
     console.print(Panel(config_info, title="📋 Global Configuration", border_style="blue"))
 
-@config_app.command()
-def set(
+@config_app.command("set")
+def config_set(
     git_auto_commit: Optional[bool] = typer.Option(None, "--git-auto-commit/--no-git-auto-commit", help="Enable/disable auto-commit"),
     git_auto_push: Optional[bool] = typer.Option(None, "--git-auto-push/--no-git-auto-push", help="Enable/disable auto-push"),
     git_prompt: Optional[bool] = typer.Option(None, "--git-prompt/--no-git-prompt", help="Enable/disable git prompts"),

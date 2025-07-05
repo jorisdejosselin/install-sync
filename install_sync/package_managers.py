@@ -27,6 +27,16 @@ class PackageManager(ABC):
         pass
     
     @abstractmethod
+    def upgrade(self, package_name: str) -> bool:
+        """Upgrade a package to latest version."""
+        pass
+    
+    @abstractmethod
+    def upgrade_all(self) -> bool:
+        """Upgrade all packages."""
+        pass
+    
+    @abstractmethod
     def is_installed(self, package_name: str) -> bool:
         """Check if package is installed."""
         pass
@@ -73,6 +83,43 @@ class BrewManager(PackageManager):
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to uninstall {package_name}: {e.stderr}")
+            return False
+    
+    def upgrade(self, package_name: str) -> bool:
+        """Upgrade package using brew."""
+        try:
+            result = subprocess.run(
+                ["brew", "upgrade", package_name],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            console.print(f"✅ Successfully upgraded {package_name}")
+            return True
+        except subprocess.CalledProcessError as e:
+            # Check if package is already up to date
+            if "already installed" in str(e.stderr).lower() or "up-to-date" in str(e.stderr).lower():
+                console.print(f"ℹ️  {package_name} is already up to date")
+                return True
+            console.print(f"❌ Failed to upgrade {package_name}: {e.stderr}")
+            return False
+    
+    def upgrade_all(self) -> bool:
+        """Upgrade all brew packages."""
+        try:
+            result = subprocess.run(
+                ["brew", "upgrade"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            console.print("✅ Successfully upgraded all packages")
+            return True
+        except subprocess.CalledProcessError as e:
+            if "already installed" in str(e.stderr).lower() or "up-to-date" in str(e.stderr).lower():
+                console.print("ℹ️  All packages are already up to date")
+                return True
+            console.print(f"❌ Failed to upgrade packages: {e.stderr}")
             return False
     
     def is_installed(self, package_name: str) -> bool:
@@ -145,6 +192,42 @@ class WingetManager(PackageManager):
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to uninstall {package_name}: {e.stderr}")
+            return False
+    
+    def upgrade(self, package_name: str) -> bool:
+        """Upgrade package using winget."""
+        try:
+            result = subprocess.run(
+                ["winget", "upgrade", package_name],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            console.print(f"✅ Successfully upgraded {package_name}")
+            return True
+        except subprocess.CalledProcessError as e:
+            if "no newer version" in str(e.stderr).lower() or "up to date" in str(e.stderr).lower():
+                console.print(f"ℹ️  {package_name} is already up to date")
+                return True
+            console.print(f"❌ Failed to upgrade {package_name}: {e.stderr}")
+            return False
+    
+    def upgrade_all(self) -> bool:
+        """Upgrade all winget packages."""
+        try:
+            result = subprocess.run(
+                ["winget", "upgrade", "--all"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            console.print("✅ Successfully upgraded all packages")
+            return True
+        except subprocess.CalledProcessError as e:
+            if "no newer version" in str(e.stderr).lower() or "up to date" in str(e.stderr).lower():
+                console.print("ℹ️  All packages are already up to date")
+                return True
+            console.print(f"❌ Failed to upgrade packages: {e.stderr}")
             return False
     
     def is_installed(self, package_name: str) -> bool:
@@ -230,6 +313,48 @@ class AptManager(PackageManager):
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to uninstall {package_name}: {e.stderr}")
+            return False
+    
+    def upgrade(self, package_name: str) -> bool:
+        """Upgrade package using apt."""
+        try:
+            # First update package lists
+            subprocess.run(["sudo", "apt", "update"], capture_output=True, check=True)
+            
+            result = subprocess.run(
+                ["sudo", "apt", "upgrade", "-y", package_name],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            console.print(f"✅ Successfully upgraded {package_name}")
+            return True
+        except subprocess.CalledProcessError as e:
+            if "already the newest version" in str(e.stderr).lower():
+                console.print(f"ℹ️  {package_name} is already up to date")
+                return True
+            console.print(f"❌ Failed to upgrade {package_name}: {e.stderr}")
+            return False
+    
+    def upgrade_all(self) -> bool:
+        """Upgrade all apt packages."""
+        try:
+            # First update package lists
+            subprocess.run(["sudo", "apt", "update"], capture_output=True, check=True)
+            
+            result = subprocess.run(
+                ["sudo", "apt", "upgrade", "-y"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            console.print("✅ Successfully upgraded all packages")
+            return True
+        except subprocess.CalledProcessError as e:
+            if "already the newest version" in str(e.stderr).lower():
+                console.print("ℹ️  All packages are already up to date")
+                return True
+            console.print(f"❌ Failed to upgrade packages: {e.stderr}")
             return False
     
     def is_installed(self, package_name: str) -> bool:
@@ -319,6 +444,44 @@ class PoetryManager(PackageManager):
             return True
         except subprocess.CalledProcessError as e:
             console.print(f"❌ Failed to uninstall {package_name}: {e.stderr}")
+            return False
+    
+    def upgrade(self, package_name: str) -> bool:
+        """Upgrade package using poetry."""
+        try:
+            result = subprocess.run(
+                ["poetry", "update", package_name],
+                cwd=self.project_path,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            console.print(f"✅ Successfully upgraded {package_name}")
+            return True
+        except subprocess.CalledProcessError as e:
+            if "already up-to-date" in str(e.stderr).lower():
+                console.print(f"ℹ️  {package_name} is already up to date")
+                return True
+            console.print(f"❌ Failed to upgrade {package_name}: {e.stderr}")
+            return False
+    
+    def upgrade_all(self) -> bool:
+        """Upgrade all poetry packages."""
+        try:
+            result = subprocess.run(
+                ["poetry", "update"],
+                cwd=self.project_path,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            console.print("✅ Successfully upgraded all packages")
+            return True
+        except subprocess.CalledProcessError as e:
+            if "already up-to-date" in str(e.stderr).lower():
+                console.print("ℹ️  All packages are already up to date")
+                return True
+            console.print(f"❌ Failed to upgrade packages: {e.stderr}")
             return False
     
     def is_installed(self, package_name: str) -> bool:
