@@ -72,7 +72,6 @@ def save_global_config_with_debug(config: GlobalConfig) -> None:
         console.print(f"⚠️  Failed to save global config: {e}")
 
 
-
 def should_perform_git_operations() -> bool:
     """Determine if git operations should be performed based on config."""
     from rich.prompt import Confirm
