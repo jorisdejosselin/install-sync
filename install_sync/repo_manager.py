@@ -291,7 +291,7 @@ class RepoManager:
                 )
                 response = requests.get(repo_url, headers=headers)
 
-            return response.status_code == 200
+            return bool(response.status_code == 200)
 
         except requests.RequestException:
             return False
@@ -429,7 +429,10 @@ class RepoManager:
 
             # Save configuration
             config = RepoConfig(
-                platform=platform, repo_name=repo_name, clone_url=final_clone_url
+                platform=platform,
+                repo_name=repo_name,
+                clone_url=final_clone_url,
+                tracking_directory=None,
             )
             self._save_config(config)
             self.config = config
