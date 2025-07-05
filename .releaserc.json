@@ -1,0 +1,32 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "poetry version ${nextRelease.version} && sed -i 's/version = \".*\"/version = \"${nextRelease.version}\"/g' install_sync/__init__.py"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "dist/install-sync-linux",
+            "label": "Linux Binary"
+          },
+          {
+            "path": "dist/install-sync-windows.exe",
+            "label": "Windows Binary"
+          },
+          {
+            "path": "dist/install-sync-macos",
+            "label": "macOS Binary"
+          }
+        ]
+      }
+    ]
+  ]
+}
