@@ -116,7 +116,7 @@ install-sync --help
 poetry build
 
 # Build binary (uses Nuitka for Python 3.13+, PyInstaller for older versions)
-python build.py
+python build_script.py
 ```
 
 ## Troubleshooting

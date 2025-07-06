@@ -18,22 +18,24 @@ Cross-platform software installation manager with git tracking for personal use 
 
 ## Installation
 
-### Via pip
-```bash
-pip install install-sync
-```
+### Quick Install Script
+Once the first release is published, you can install using these one-liners:
 
-### Via Poetry
 ```bash
-poetry add install-sync
+# Linux/macOS
+curl -sSL https://raw.githubusercontent.com/joris/install-sync/main/install.sh | bash
+
+# Windows (PowerShell)
+iwr -useb https://raw.githubusercontent.com/joris/install-sync/main/install.ps1 | iex
 ```
 
 ### Download Binary
-Download the latest binary for your platform from the [releases page](https://github.com/joris/install-sync/releases):
+Pre-built binaries will be available from the releases page:
 
-- **Linux**: `install-sync-linux`
-- **Windows**: `install-sync-windows.exe`
-- **macOS**: `install-sync-macos`
+- **Linux (x64)**: `install-sync-linux-amd64`
+- **Windows (x64)**: `install-sync-windows-amd64.exe`
+- **macOS (Intel x64)**: `install-sync-darwin-amd64`
+- **macOS (Apple Silicon ARM64)**: `install-sync-darwin-arm64`
 
 Make the binary executable and place it in your PATH.
 
@@ -137,16 +139,6 @@ If you run `install-sync repo setup` and a repository with the same name already
 
 ## Quick Start
 
-> 💡 **Tip:** To avoid typing `poetry run` before every command, activate the Poetry environment first:
-> ```bash
-> # Option 1: Modern Poetry (2.0+) - run the output of poetry env activate
-> $(poetry env activate)
-> 
-> # Option 2: Manual activation (works with all Poetry versions)
-> source $(poetry env info --path)/bin/activate  # Linux/macOS
-> $(poetry env info --path)\Scripts\activate     # Windows
-> ```
-
 1. **Set up repository**:
    ```bash
    install-sync repo setup
@@ -242,7 +234,7 @@ install-sync creates a **dedicated tracking directory** (default: `~/package-tra
 ~/package-tracking/
 ├── .git/              # Git repository
 ├── .gitignore         # Excludes local config files
-├── README.md          # Repository documentation  
+├── README.md          # Repository documentation
 ├── config.json        # Package tracking data (synced)
 └── repo-config.json   # Local repository settings (excluded)
 ```
@@ -369,10 +361,10 @@ poetry run mypy install_sync/
 poetry build
 
 # Build binary (if in Poetry environment)
-python build.py
+python build_script.py
 
 # Or with poetry run
-poetry run python build.py
+poetry run python build_script.py
 ```
 
 ## Contributing
