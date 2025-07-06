@@ -63,7 +63,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+            platform: linux
+          - os: windows-latest
+            arch: amd64
+            platform: windows
+          - os: macos-13
+            arch: amd64
+            platform: darwin
+          - os: macos-latest
+            arch: arm64
+            platform: darwin
 
     steps:
       - uses: actions/checkout@v4
@@ -86,12 +98,24 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction
 
+      - name: Set binary name
+        id: binary-name
+        run: |
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            echo "name=install-sync-${{ matrix.platform }}-${{ matrix.arch }}.exe" >> $GITHUB_OUTPUT
+            echo "artifact=install-sync-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
+          else
+            echo "name=install-sync-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
+            echo "artifact=install-sync-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
       - name: Build executable (Unix)
         if: runner.os != 'Windows'
         run: |
           poetry install --with build
           poetry run pyinstaller --onefile \
-            --name install-sync-${{ matrix.os }} \
+            --name ${{ steps.binary-name.outputs.name }} \
             --add-data "install_sync:install_sync" \
             install_sync/main.py
 
@@ -100,15 +124,15 @@ jobs:
         run: |
           poetry install --with build
           poetry run pyinstaller --onefile `
-            --name install-sync-${{ matrix.os }} `
+            --name ${{ steps.binary-name.outputs.name }} `
             --add-data "install_sync;install_sync" `
             install_sync/main.py
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: install-sync-${{ matrix.os }}
-          path: dist/install-sync-${{ matrix.os }}*
+          name: ${{ steps.binary-name.outputs.artifact }}
+          path: dist/${{ steps.binary-name.outputs.name }}*
 
   release:
     needs: build
@@ -130,9 +154,38 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/install-sync-ubuntu-latest/install-sync-ubuntu-latest
-            dist/install-sync-windows-latest/install-sync-windows-latest.exe
-            dist/install-sync-macos-latest/install-sync-macos-latest
+            dist/install-sync-linux-amd64/install-sync-linux-amd64
+            dist/install-sync-windows-amd64/install-sync-windows-amd64.exe
+            dist/install-sync-darwin-amd64/install-sync-darwin-amd64
+            dist/install-sync-darwin-arm64/install-sync-darwin-arm64
+          body: |
+            ## Installation
+
+            ### Download Binary
+            Download the appropriate binary for your platform from the assets below:
+            - **Linux (x64)**: `install-sync-linux-amd64`
+            - **Windows (x64)**: `install-sync-windows-amd64.exe`
+            - **macOS (Intel x64)**: `install-sync-darwin-amd64`
+            - **macOS (Apple Silicon ARM64)**: `install-sync-darwin-arm64`
+
+            Make the binary executable and place it in your PATH.
+
+            ### Quick Install Script
+            ```bash
+            # Linux/macOS
+            curl -sSL https://raw.githubusercontent.com/joris/install-sync/main/install.sh | bash
+
+            # Windows (PowerShell)
+            iwr -useb https://raw.githubusercontent.com/joris/install-sync/main/install.ps1 | iex
+            ```
+
+            ### From Source
+            ```bash
+            git clone https://github.com/joris/install-sync.git
+            cd install-sync
+            poetry install
+            poetry run install-sync --help
+            ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
