@@ -715,11 +715,14 @@ def list(
 ) -> None:
     """List installed packages."""
     # Auto-sync if enabled
-    if is_tracking_repo_setup():
+    try:
         tracking_dir = get_tracking_directory()
-        if tracking_dir:
+        if tracking_dir and tracking_dir.exists():
             git_manager = GitManager(tracking_dir, GitConfig(), debug_mode=is_debug_mode())
             git_manager.sync_before_operation("listing packages")
+    except Exception:
+        # If tracking setup fails, continue without sync
+        pass
     
     config = load_config()
     machine = MachineProfile.create_current()
