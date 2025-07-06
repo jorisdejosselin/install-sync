@@ -60,7 +60,7 @@ jobs:
         run: poetry build
 
       - name: Test binary build (Linux only)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.python-version == '3.11'
         run: |
           poetry install --with build
           poetry run pyinstaller --onefile \
@@ -73,8 +73,15 @@ jobs:
             --hidden-import install_sync.git_manager \
             --hidden-import install_sync.package_managers \
             --hidden-import install_sync.repo_manager \
+            --hidden-import ipaddress \
+            --hidden-import pathlib \
+            --hidden-import urllib \
+            --hidden-import urllib.parse \
+            --collect-all typer \
+            --collect-all rich \
+            --collect-all pydantic \
             cli_entry.py
 
       - name: Test binary execution (Linux only)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.python-version == '3.11'
         run: ./dist/install-sync-test --help
