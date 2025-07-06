@@ -40,8 +40,7 @@ jobs:
         uses: python-semantic-release/python-semantic-release@v9.1.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          root_options: |
-            --verbosity DEBUG
+          root_options: --verbose
 
   build:
     needs: release
