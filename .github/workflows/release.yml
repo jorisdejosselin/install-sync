@@ -104,19 +104,33 @@ jobs:
             poetry run nuitka --onefile \
               --output-filename=${{ steps.binary-name.outputs.name }} \
               --include-package=install_sync \
-              install_sync/main.py
+              cli_entry.py
           else
             # Use PyInstaller for Python < 3.13
             if [ "${{ runner.os }}" = "Windows" ]; then
               poetry run pyinstaller --onefile \
                 --name ${{ steps.binary-name.outputs.name }} \
                 --add-data "install_sync;install_sync" \
-                install_sync/main.py
+                --hidden-import install_sync \
+                --hidden-import install_sync.main \
+                --hidden-import install_sync.config_utils \
+                --hidden-import install_sync.models \
+                --hidden-import install_sync.git_manager \
+                --hidden-import install_sync.package_managers \
+                --hidden-import install_sync.repo_manager \
+                cli_entry.py
             else
               poetry run pyinstaller --onefile \
                 --name ${{ steps.binary-name.outputs.name }} \
                 --add-data "install_sync:install_sync" \
-                install_sync/main.py
+                --hidden-import install_sync \
+                --hidden-import install_sync.main \
+                --hidden-import install_sync.config_utils \
+                --hidden-import install_sync.models \
+                --hidden-import install_sync.git_manager \
+                --hidden-import install_sync.package_managers \
+                --hidden-import install_sync.repo_manager \
+                cli_entry.py
             fi
           fi
         shell: bash

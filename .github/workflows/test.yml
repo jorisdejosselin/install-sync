@@ -66,7 +66,14 @@ jobs:
           poetry run pyinstaller --onefile \
             --name install-sync-test \
             --add-data "install_sync:install_sync" \
-            install_sync/main.py
+            --hidden-import install_sync \
+            --hidden-import install_sync.main \
+            --hidden-import install_sync.config_utils \
+            --hidden-import install_sync.models \
+            --hidden-import install_sync.git_manager \
+            --hidden-import install_sync.package_managers \
+            --hidden-import install_sync.repo_manager \
+            cli_entry.py
 
       - name: Test binary execution (Linux only)
         if: runner.os == 'Linux'
