@@ -75,3 +75,9 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:tool.poetry.version"]
+build_command = "poetry build"
+major_on_zero = true
+commit_author = "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
