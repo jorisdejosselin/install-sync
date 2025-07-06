@@ -15,7 +15,7 @@ def build_with_nuitka() -> None:
         "--onefile",
         "--output-filename=install-sync",
         "--include-package=install_sync",
-        "install_sync/main.py",
+        "cli_entry.py",
     ]
 
     subprocess.run(cmd, check=True)
@@ -33,7 +33,35 @@ def build_with_pyinstaller() -> None:
         "install-sync",
         "--add-data",
         "install_sync:install_sync",
-        "install_sync/main.py",
+        "--hidden-import",
+        "install_sync",
+        "--hidden-import",
+        "install_sync.main",
+        "--hidden-import",
+        "install_sync.config_utils",
+        "--hidden-import",
+        "install_sync.models",
+        "--hidden-import",
+        "install_sync.git_manager",
+        "--hidden-import",
+        "install_sync.package_managers",
+        "--hidden-import",
+        "install_sync.repo_manager",
+        "--hidden-import",
+        "ipaddress",
+        "--hidden-import",
+        "pathlib",
+        "--hidden-import",
+        "urllib",
+        "--hidden-import",
+        "urllib.parse",
+        "--collect-all",
+        "typer",
+        "--collect-all",
+        "rich",
+        "--collect-all",
+        "pydantic",
+        "cli_entry.py",
     ]
 
     subprocess.run(cmd, check=True)
@@ -60,26 +88,21 @@ def main() -> None:
         build_with_pyinstaller()
 
     # Find the built executable
-    dist_path = Path("dist")
-    if dist_path.exists():
-        executables = list(dist_path.glob("install-sync*"))
-        if executables:
-            exe_path = executables[0]
-            print(f"✅ Built executable: {exe_path}")
+    exe_path = Path("install-sync")
+    if exe_path.exists():
+        print(f"✅ Built executable: {exe_path}")
 
-            # Test the executable
-            print("🧪 Testing executable...")
-            result = subprocess.run(
-                [str(exe_path), "--help"], capture_output=True, text=True
-            )
-            if result.returncode == 0:
-                print("✅ Executable test passed!")
-            else:
-                print(f"❌ Executable test failed: {result.stderr}")
+        # Test the executable
+        print("🧪 Testing executable...")
+        result = subprocess.run(
+            [str(exe_path), "--help"], capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            print("✅ Executable test passed!")
         else:
-            print("❌ No executable found in dist/")
+            print(f"❌ Executable test failed: {result.stderr}")
     else:
-        print("❌ dist/ directory not found")
+        print("❌ Executable 'install-sync' not found")
 
 
 if __name__ == "__main__":

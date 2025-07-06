@@ -1,0 +1,27 @@
+[semantic_release]
+version_toml = ["pyproject.toml:tool.poetry.version"]
+version_variables = ["install_sync/__init__.py:__version__"]
+build_command = "poetry build"
+upload_to_pypi = false
+upload_to_release = true
+remove_dist = false
+
+[semantic_release.branches.main]
+match = "main"
+prerelease = false
+
+[semantic_release.changelog]
+template_dir = "templates"
+changelog_file = "CHANGELOG.md"
+
+[semantic_release.commit_parser_options]
+allowed_tags = ["build", "chore", "ci", "docs", "feat", "fix", "perf", "style", "refactor", "test"]
+minor_tags = ["feat"]
+patch_tags = ["fix", "perf"]
+
+[semantic_release.remote]
+name = "origin"
+type = "github"
+
+[semantic_release.publish]
+dist_glob_patterns = ["dist/*"]

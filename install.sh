@@ -36,7 +36,7 @@ log_error() {
 detect_platform() {
     local os=$(uname -s | tr '[:upper:]' '[:lower:]')
     local arch=$(uname -m)
-    
+
     case "$os" in
         linux*)
             OS="linux"
@@ -49,7 +49,7 @@ detect_platform() {
             exit 1
             ;;
     esac
-    
+
     case "$arch" in
         x86_64|amd64)
             ARCH="amd64"
@@ -68,7 +68,7 @@ detect_platform() {
             fi
             ;;
     esac
-    
+
     PLATFORM="${OS}-${ARCH}"
     log_info "Detected platform: $PLATFORM"
 }
@@ -76,9 +76,9 @@ detect_platform() {
 # Get latest release version
 get_latest_version() {
     log_info "Fetching latest release information..."
-    
+
     local release_url="https://api.github.com/repos/$REPO/releases/latest"
-    
+
     if command -v curl >/dev/null 2>&1; then
         VERSION=$(curl -s "$release_url" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     elif command -v wget >/dev/null 2>&1; then
@@ -87,12 +87,12 @@ get_latest_version() {
         log_error "Neither curl nor wget found. Please install one of them."
         exit 1
     fi
-    
+
     if [ -z "$VERSION" ]; then
         log_error "Failed to get latest version"
         exit 1
     fi
-    
+
     log_info "Latest version: $VERSION"
 }
 
@@ -101,27 +101,27 @@ install_binary() {
     local binary_name="${BINARY_NAME}-${PLATFORM}"
     local download_url="https://github.com/$REPO/releases/download/$VERSION/$binary_name"
     local temp_file="/tmp/$binary_name"
-    
+
     log_info "Downloading $binary_name..."
-    
+
     if command -v curl >/dev/null 2>&1; then
         curl -sL "$download_url" -o "$temp_file"
     elif command -v wget >/dev/null 2>&1; then
         wget -q "$download_url" -O "$temp_file"
     fi
-    
+
     if [ ! -f "$temp_file" ]; then
         log_error "Failed to download binary"
         exit 1
     fi
-    
+
     # Create install directory if it doesn't exist
     mkdir -p "$INSTALL_DIR"
-    
+
     # Move binary to install directory
     mv "$temp_file" "$INSTALL_DIR/$BINARY_NAME"
     chmod +x "$INSTALL_DIR/$BINARY_NAME"
-    
+
     log_success "Installed $BINARY_NAME to $INSTALL_DIR/$BINARY_NAME"
 }
 
@@ -144,7 +144,7 @@ verify_installation() {
     if [ -x "$INSTALL_DIR/$BINARY_NAME" ]; then
         log_success "Installation verified!"
         log_info "Run '$BINARY_NAME --help' to get started"
-        
+
         # Try to run the binary if it's in PATH
         if command -v "$BINARY_NAME" >/dev/null 2>&1; then
             echo ""
@@ -160,13 +160,13 @@ verify_installation() {
 main() {
     log_info "Starting install-sync installation..."
     echo ""
-    
+
     detect_platform
     get_latest_version
     install_binary
     check_path
     verify_installation
-    
+
     echo ""
     log_success "install-sync has been installed successfully!"
     log_info "Get started with: $BINARY_NAME repo setup"

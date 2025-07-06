@@ -42,16 +42,16 @@ function Get-Platform {
 # Get latest release version
 function Get-LatestVersion {
     Write-Info "Fetching latest release information..."
-    
+
     try {
         $releaseUrl = "https://api.github.com/repos/$Repo/releases/latest"
         $response = Invoke-RestMethod -Uri $releaseUrl -Method Get
         $version = $response.tag_name
-        
+
         if (-not $version) {
             throw "No version found in response"
         }
-        
+
         Write-Info "Latest version: $version"
         return $version
     }
@@ -67,30 +67,30 @@ function Install-Binary {
         [string]$Version,
         [string]$Platform
     )
-    
+
     $binaryName = "$BinaryName-$Platform.exe"
     $downloadUrl = "https://github.com/$Repo/releases/download/$Version/$binaryName"
     $tempFile = "$env:TEMP\$binaryName"
     $finalPath = "$InstallDir\$BinaryName.exe"
-    
+
     Write-Info "Downloading $binaryName..."
-    
+
     try {
         # Create install directory if it doesn't exist
         if (-not (Test-Path $InstallDir)) {
             New-Item -Path $InstallDir -ItemType Directory -Force | Out-Null
         }
-        
+
         # Download binary
         Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile
-        
+
         if (-not (Test-Path $tempFile)) {
             throw "Download failed - file not found"
         }
-        
+
         # Move to install directory
         Move-Item -Path $tempFile -Destination $finalPath -Force
-        
+
         Write-Success "Installed $BinaryName to $finalPath"
         return $finalPath
     }
@@ -103,7 +103,7 @@ function Install-Binary {
 # Check if directory is in PATH
 function Test-PathContains {
     param([string]$Directory)
-    
+
     $pathArray = $env:PATH -split ';'
     return $pathArray -contains $Directory
 }
@@ -111,27 +111,27 @@ function Test-PathContains {
 # Add directory to PATH
 function Add-ToPath {
     param([string]$Directory)
-    
+
     if (Test-PathContains $Directory) {
         Write-Success "$Directory is already in your PATH"
         return
     }
-    
+
     Write-Warning "$Directory is not in your PATH"
     Write-Info "Adding $Directory to your PATH..."
-    
+
     try {
         # Get current user PATH
         $currentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
-        
+
         # Add new directory if not already present
         if ($currentPath -notlike "*$Directory*") {
             $newPath = if ($currentPath) { "$currentPath;$Directory" } else { $Directory }
             [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
-            
+
             # Update current session PATH
             $env:PATH = "$env:PATH;$Directory"
-            
+
             Write-Success "Added $Directory to your PATH"
             Write-Info "You may need to restart your terminal for the change to take effect"
         }
@@ -146,11 +146,11 @@ function Add-ToPath {
 # Verify installation
 function Test-Installation {
     param([string]$BinaryPath)
-    
+
     if (Test-Path $BinaryPath) {
         Write-Success "Installation verified!"
         Write-Info "Run '$BinaryName --help' to get started"
-        
+
         # Try to run the binary
         try {
             & $BinaryPath --version 2>$null
@@ -158,7 +158,7 @@ function Test-Installation {
         catch {
             # Ignore version check errors
         }
-        
+
         return $true
     }
     else {
@@ -171,15 +171,15 @@ function Test-Installation {
 function Main {
     Write-Info "Starting install-sync installation..."
     Write-Host ""
-    
+
     $platform = Get-Platform
     Write-Info "Detected platform: $platform"
-    
+
     $version = Get-LatestVersion
     $binaryPath = Install-Binary -Version $version -Platform $platform
-    
+
     Add-ToPath $InstallDir
-    
+
     if (Test-Installation $binaryPath) {
         Write-Host ""
         Write-Success "install-sync has been installed successfully!"
