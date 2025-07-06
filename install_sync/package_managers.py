@@ -273,7 +273,8 @@ class WingetManager(PackageManager):
                     f"⚠️  Package {package_name} cannot be upgraded via winget"
                 )
                 console.print(
-                    "💡 [dim]This package may require manual updates or be managed by another installer[/dim]"
+                    "💡 [dim]This package may require manual updates or be managed "
+                    "by another installer[/dim]"
                 )
                 return True  # Treat as "success" - package exists but can't be upgraded
             elif "package not found" in stderr_lower:
@@ -535,7 +536,7 @@ class PoetryManager(PackageManager):
             if "Could not find a matching version" in stderr or "not found" in stderr:
                 console.print(f"❌ Package '{package_name}' not found on PyPI")
                 console.print(
-                    f"💡 [dim]Check package name or try searching PyPI directly[/dim]"
+                    "💡 [dim]Check package name or try searching PyPI directly[/dim]"
                 )
             elif "already present" in stderr or "already installed" in stderr:
                 console.print(f"ℹ️  Package {package_name} is already in dependencies")
@@ -546,7 +547,7 @@ class PoetryManager(PackageManager):
                     "💡 [dim]Run 'poetry init' to create a Poetry project[/dim]"
                 )
             elif "lock file" in stderr and "outdated" in stderr:
-                console.print(f"❌ Poetry lock file is outdated")
+                console.print("❌ Poetry lock file is outdated")
                 console.print("💡 [dim]Try: poetry lock --no-update[/dim]")
             else:
                 console.print(f"❌ Failed to install {package_name}")
