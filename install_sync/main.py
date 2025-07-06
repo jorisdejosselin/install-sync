@@ -1440,7 +1440,7 @@ def show() -> None:
 • Auto-push: {auto_push_str}
 • Show prompts: {'✅' if global_config.git_prompt else '❌'}
 • Remote preference: {'SSH' if global_config.prefer_ssh_remotes else 'HTTPS'}
-• Auto-sync on conflicts: {'✅' if global_config.git_auto_sync else '❌'}
+• Auto-sync before push: {'✅' if global_config.git_auto_sync else '❌'}
 • Auto-sync on list: {'✅' if global_config.git_auto_sync_on_list else '❌'}
 
 [bold]Directories[/bold]
@@ -1481,7 +1481,7 @@ def config_set(
     git_auto_sync: Optional[bool] = typer.Option(
         None,
         "--git-auto-sync/--no-git-auto-sync",
-        help="Enable/disable auto-sync before push when conflicts arise",
+        help="Enable/disable auto-pull before every push operation",
     ),
     git_auto_sync_on_list: Optional[bool] = typer.Option(
         None,

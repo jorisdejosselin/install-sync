@@ -110,6 +110,15 @@ class GitManager:
         if not self.config.auto_push:
             return
 
+        # Always pull before pushing if auto-sync is enabled
+        if self.global_config.git_auto_sync:
+            try:
+                console.print("🔄 [dim]Syncing with remote before push...[/dim]")
+                self.pull_changes(remote_name, branch_name)
+            except Exception as e:
+                console.print(f"⚠️  [yellow]Pre-push sync failed: {e}[/yellow]")
+                console.print("💡 [dim]Continuing with push attempt...[/dim]")
+
         try:
             origin = self.repo.remote(remote_name)
 
@@ -178,15 +187,15 @@ class GitManager:
             ):
                 if self.global_config.git_auto_sync:
                     console.print(
-                        "🔄 [blue]Repository has diverged. "
-                        "Attempting to sync and retry...[/blue]"
+                        "🔄 [blue]Push still failed after pre-sync. Repository may have changed "
+                        "during operation. Attempting additional sync...[/blue]"
                     )
                     try:
-                        # Try to pull/sync changes first
+                        # Try to pull/sync changes again
                         self.pull_changes(remote_name, branch_name)
 
                         # Retry the push
-                        console.print("🔄 Retrying push after sync...")
+                        console.print("🔄 Retrying push after additional sync...")
                         retry_push_info = origin.push(branch_name)
 
                         # Check retry results
@@ -202,24 +211,24 @@ class GitManager:
                                     "💡 [dim]Manual intervention may be required[/dim]"
                                 )
                             else:
-                                console.print("✅ Push succeeded after sync!")
+                                console.print("✅ Push succeeded after additional sync!")
                                 return
                         else:
-                            console.print("✅ Push succeeded after sync!")
+                            console.print("✅ Push succeeded after additional sync!")
                             return
 
                     except Exception as sync_error:
-                        console.print(f"❌ Sync and retry failed: {sync_error}")
+                        console.print(f"❌ Additional sync and retry failed: {sync_error}")
                         console.print(
                             "💡 [dim]You may need to resolve conflicts manually[/dim]"
                         )
                 else:
                     console.print(
-                        "🔄 [yellow]Repository has diverged. Auto-sync is disabled.[/yellow]"
+                        "🔄 [yellow]Repository has diverged and auto-sync is disabled.[/yellow]"
                     )
                     console.print(
                         "💡 [dim]Run 'install-sync sync' to pull changes first, "
-                        "or enable auto-sync: 'install-sync config set git_auto_sync true'[/dim]"
+                        "or enable auto-sync: 'install-sync config set --git-auto-sync true'[/dim]"
                     )
 
             # Check for authentication/permission errors
