@@ -7,7 +7,7 @@ from git import GitCommandError, Repo
 from rich.console import Console
 
 from .config_utils import load_global_config
-from .models import GitConfig
+from .models import GitConfig, GlobalConfig
 
 console = Console()
 
@@ -20,10 +20,10 @@ class GitManager:
         self.config = config
         self.debug_mode = debug_mode
         self._repo: Optional[Repo] = None
-        self._global_config = None
+        self._global_config: Optional[GlobalConfig] = None
 
     @property
-    def global_config(self):
+    def global_config(self) -> GlobalConfig:
         """Get global configuration."""
         if self._global_config is None:
             self._global_config = load_global_config()
