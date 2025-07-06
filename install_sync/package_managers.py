@@ -66,18 +66,24 @@ class BrewManager(PackageManager):
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
             stdout = e.stdout.strip() if e.stdout else ""
-            
+
             # Check for specific brew errors
             if "No available formula" in stderr or "No formula found" in stderr:
                 console.print(f"❌ Package '{package_name}' not found in Homebrew")
-                console.print(f"💡 [dim]Try searching with: brew search {package_name}[/dim]")
+                console.print(
+                    f"💡 [dim]Try searching with: brew search {package_name}[/dim]"
+                )
             elif "already installed" in stderr:
                 console.print(f"ℹ️  Package {package_name} is already installed")
-                console.print(f"💡 [dim]Use 'brew upgrade {package_name}' to update[/dim]")
+                console.print(
+                    f"💡 [dim]Use 'brew upgrade {package_name}' to update[/dim]"
+                )
                 return True  # Not really a failure
             elif "Permission denied" in stderr:
                 console.print(f"❌ Permission denied installing {package_name}")
-                console.print("💡 [dim]Check Homebrew permissions or try with sudo[/dim]")
+                console.print(
+                    "💡 [dim]Check Homebrew permissions or try with sudo[/dim]"
+                )
             else:
                 console.print(f"❌ Failed to install {package_name}")
                 if stderr:
@@ -194,19 +200,28 @@ class WingetManager(PackageManager):
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
             stdout = e.stdout.strip() if e.stdout else ""
-            
+
             # Check for specific winget errors
             if "No package found matching input criteria" in stderr:
-                console.print(f"❌ Package '{package_name}' not found in winget repositories")
-                console.print(f"💡 [dim]Try searching with: winget search {package_name}[/dim]")
+                console.print(
+                    f"❌ Package '{package_name}' not found in winget repositories"
+                )
+                console.print(
+                    f"💡 [dim]Try searching with: winget search {package_name}[/dim]"
+                )
             elif "requires admin" in stderr.lower() or "elevation" in stderr.lower():
                 console.print(f"❌ Admin privileges required to install {package_name}")
                 console.print("💡 [dim]Run as administrator or use --scope user[/dim]")
             elif "already installed" in stderr.lower():
                 console.print(f"ℹ️  Package {package_name} is already installed")
-                console.print(f"💡 [dim]Use 'winget upgrade {package_name}' to update[/dim]")
+                console.print(
+                    f"💡 [dim]Use 'winget upgrade {package_name}' to update[/dim]"
+                )
                 return True  # Not really a failure
-            elif "cannot be upgraded" in stderr.lower() or "cannot upgrade" in stderr.lower():
+            elif (
+                "cannot be upgraded" in stderr.lower()
+                or "cannot upgrade" in stderr.lower()
+            ):
                 console.print(f"❌ Package {package_name} cannot be upgraded via winget")
                 console.print("💡 [dim]Some packages require manual updates[/dim]")
             else:
@@ -247,17 +262,25 @@ class WingetManager(PackageManager):
             stderr = e.stderr.strip() if e.stderr else ""
             stdout = e.stdout.strip() if e.stdout else ""
             stderr_lower = stderr.lower()
-            
+
             if "no newer version" in stderr_lower or "up to date" in stderr_lower:
                 console.print(f"ℹ️  {package_name} is already up to date")
                 return True
-            elif "cannot be upgraded" in stderr_lower or "cannot upgrade" in stderr_lower:
-                console.print(f"⚠️  Package {package_name} cannot be upgraded via winget")
-                console.print("💡 [dim]This package may require manual updates or be managed by another installer[/dim]")
+            elif (
+                "cannot be upgraded" in stderr_lower or "cannot upgrade" in stderr_lower
+            ):
+                console.print(
+                    f"⚠️  Package {package_name} cannot be upgraded via winget"
+                )
+                console.print(
+                    "💡 [dim]This package may require manual updates or be managed by another installer[/dim]"
+                )
                 return True  # Treat as "success" - package exists but can't be upgraded
             elif "package not found" in stderr_lower:
                 console.print(f"❌ Package {package_name} not found for upgrade")
-                console.print("💡 [dim]Package may have been uninstalled or installed differently[/dim]")
+                console.print(
+                    "💡 [dim]Package may have been uninstalled or installed differently[/dim]"
+                )
             elif "requires admin" in stderr_lower or "elevation" in stderr_lower:
                 console.print(f"❌ Admin privileges required to upgrade {package_name}")
                 console.print("💡 [dim]Run as administrator[/dim]")
@@ -354,20 +377,30 @@ class AptManager(PackageManager):
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
             stdout = e.stdout.strip() if e.stdout else ""
-            
+
             # Check for specific apt errors
             if "Unable to locate package" in stderr or "No package" in stderr:
-                console.print(f"❌ Package '{package_name}' not found in apt repositories")
-                console.print(f"💡 [dim]Try searching with: apt search {package_name}[/dim]")
-                console.print("💡 [dim]You may need to update package lists: sudo apt update[/dim]")
-            elif "already the newest version" in stderr or "already installed" in stderr:
+                console.print(
+                    f"❌ Package '{package_name}' not found in apt repositories"
+                )
+                console.print(
+                    f"💡 [dim]Try searching with: apt search {package_name}[/dim]"
+                )
+                console.print(
+                    "💡 [dim]You may need to update package lists: sudo apt update[/dim]"
+                )
+            elif (
+                "already the newest version" in stderr or "already installed" in stderr
+            ):
                 console.print(f"ℹ️  Package {package_name} is already up to date")
                 return True  # Not really a failure
             elif "sudo" in stderr and "permission" in stderr.lower():
                 console.print(f"❌ Root privileges required to install {package_name}")
                 console.print("💡 [dim]Command should include sudo[/dim]")
             elif "dpkg was interrupted" in stderr:
-                console.print(f"❌ Package manager interrupted during {package_name} installation")
+                console.print(
+                    f"❌ Package manager interrupted during {package_name} installation"
+                )
                 console.print("💡 [dim]Try: sudo dpkg --configure -a[/dim]")
             else:
                 console.print(f"❌ Failed to install {package_name}")
@@ -497,17 +530,21 @@ class PoetryManager(PackageManager):
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
             stdout = e.stdout.strip() if e.stdout else ""
-            
+
             # Check for specific poetry errors
             if "Could not find a matching version" in stderr or "not found" in stderr:
                 console.print(f"❌ Package '{package_name}' not found on PyPI")
-                console.print(f"💡 [dim]Check package name or try searching PyPI directly[/dim]")
+                console.print(
+                    f"💡 [dim]Check package name or try searching PyPI directly[/dim]"
+                )
             elif "already present" in stderr or "already installed" in stderr:
                 console.print(f"ℹ️  Package {package_name} is already in dependencies")
                 return True  # Not really a failure
             elif "not a poetry project" in stderr.lower() or "pyproject.toml" in stderr:
                 console.print(f"❌ Not a Poetry project in {self.project_path}")
-                console.print("💡 [dim]Run 'poetry init' to create a Poetry project[/dim]")
+                console.print(
+                    "💡 [dim]Run 'poetry init' to create a Poetry project[/dim]"
+                )
             elif "lock file" in stderr and "outdated" in stderr:
                 console.print(f"❌ Poetry lock file is outdated")
                 console.print("💡 [dim]Try: poetry lock --no-update[/dim]")

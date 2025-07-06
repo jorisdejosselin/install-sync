@@ -7,10 +7,10 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from typer import Context
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from typer import Context
 
 from .config_utils import load_global_config, save_global_config
 from .git_manager import GitManager
@@ -25,7 +25,6 @@ app = typer.Typer(
 )
 
 console = Console()
-
 
 
 # Global state
@@ -122,7 +121,7 @@ def main_callback(
     # Store git preferences globally for this session
     global _session_git_options
     _session_git_options = {"no_git": no_git, "auto_git": auto_git}
-    
+
     # Show help when no command is provided
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
@@ -718,12 +717,14 @@ def list(
     try:
         tracking_dir = get_tracking_directory()
         if tracking_dir and tracking_dir.exists():
-            git_manager = GitManager(tracking_dir, GitConfig(), debug_mode=is_debug_mode())
+            git_manager = GitManager(
+                tracking_dir, GitConfig(), debug_mode=is_debug_mode()
+            )
             git_manager.sync_before_operation("listing packages")
     except Exception:
         # If tracking setup fails, continue without sync
         pass
-    
+
     config = load_config()
     machine = MachineProfile.create_current()
 

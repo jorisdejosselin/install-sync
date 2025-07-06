@@ -6,8 +6,8 @@ from typing import List, Optional
 from git import GitCommandError, Repo
 from rich.console import Console
 
-from .models import GitConfig
 from .config_utils import load_global_config
+from .models import GitConfig
 
 console = Console()
 
@@ -218,7 +218,9 @@ class GitManager:
                             return
 
                     except Exception as sync_error:
-                        console.print(f"❌ Additional sync and retry failed: {sync_error}")
+                        console.print(
+                            f"❌ Additional sync and retry failed: {sync_error}"
+                        )
                         console.print(
                             "💡 [dim]You may need to resolve conflicts manually[/dim]"
                         )
