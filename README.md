@@ -369,10 +369,10 @@ poetry run mypy install_sync/
 poetry build
 
 # Build binary (if in Poetry environment)
-python build.py
+python build_script.py
 
 # Or with poetry run
-poetry run python build.py
+poetry run python build_script.py
 ```
 
 ## Contributing

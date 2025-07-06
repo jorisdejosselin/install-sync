@@ -714,6 +714,13 @@ def list(
     )
 ) -> None:
     """List installed packages."""
+    # Auto-sync if enabled
+    if is_tracking_repo_setup():
+        tracking_dir = get_tracking_directory()
+        if tracking_dir:
+            git_manager = GitManager(tracking_dir, GitConfig(), debug_mode=is_debug_mode())
+            git_manager.sync_before_operation("listing packages")
+    
     config = load_config()
     machine = MachineProfile.create_current()
 
@@ -1433,6 +1440,8 @@ def show() -> None:
 • Auto-push: {auto_push_str}
 • Show prompts: {'✅' if global_config.git_prompt else '❌'}
 • Remote preference: {'SSH' if global_config.prefer_ssh_remotes else 'HTTPS'}
+• Auto-sync on conflicts: {'✅' if global_config.git_auto_sync else '❌'}
+• Auto-sync on list: {'✅' if global_config.git_auto_sync_on_list else '❌'}
 
 [bold]Directories[/bold]
 • Default tracking directory: {tracking_dir}
@@ -1469,6 +1478,16 @@ def config_set(
         "--prefer-ssh/--prefer-https",
         help="Prefer SSH over HTTPS for git remotes",
     ),
+    git_auto_sync: Optional[bool] = typer.Option(
+        None,
+        "--git-auto-sync/--no-git-auto-sync",
+        help="Enable/disable auto-sync before push when conflicts arise",
+    ),
+    git_auto_sync_on_list: Optional[bool] = typer.Option(
+        None,
+        "--git-auto-sync-on-list/--no-git-auto-sync-on-list",
+        help="Enable/disable auto-sync when listing packages",
+    ),
     tracking_directory: Optional[str] = typer.Option(
         None, "--tracking-directory", help="Set default tracking directory"
     ),
@@ -1498,6 +1517,16 @@ def config_set(
         updated = True
         protocol = "SSH" if prefer_ssh_remotes else "HTTPS"
         console.print(f"✅ Set git remote preference: {protocol}")
+
+    if git_auto_sync is not None:
+        global_config.git_auto_sync = git_auto_sync
+        updated = True
+        console.print(f"✅ Set git auto-sync: {git_auto_sync}")
+
+    if git_auto_sync_on_list is not None:
+        global_config.git_auto_sync_on_list = git_auto_sync_on_list
+        updated = True
+        console.print(f"✅ Set git auto-sync on list: {git_auto_sync_on_list}")
 
     if tracking_directory is not None:
         # Expand and validate path

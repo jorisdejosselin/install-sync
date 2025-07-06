@@ -84,6 +84,8 @@ class GlobalConfig(BaseModel):
     git_auto_push: Optional[bool] = None
     git_prompt: bool = True
     prefer_ssh_remotes: bool = True  # Default to SSH for better security
+    git_auto_sync: bool = True  # Auto-pull before push when conflicts arise
+    git_auto_sync_on_list: bool = False  # Auto-sync when listing packages
     default_tracking_directory: Optional[str] = None
     package_managers: Dict[str, str] = Field(default_factory=dict)
 

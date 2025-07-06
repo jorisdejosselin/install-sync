@@ -7,6 +7,7 @@ from git import GitCommandError, Repo
 from rich.console import Console
 
 from .models import GitConfig
+from .config_utils import load_global_config
 
 console = Console()
 
@@ -19,6 +20,14 @@ class GitManager:
         self.config = config
         self.debug_mode = debug_mode
         self._repo: Optional[Repo] = None
+        self._global_config = None
+
+    @property
+    def global_config(self):
+        """Get global configuration."""
+        if self._global_config is None:
+            self._global_config = load_global_config()
+        return self._global_config
 
     @property
     def repo(self) -> Repo:
@@ -167,41 +176,50 @@ class GitManager:
                 or "non-fast-forward" in error_msg
                 or "rejected" in error_msg
             ):
-                console.print(
-                    "🔄 [blue]Repository has diverged. "
-                    "Attempting to sync and retry...[/blue]"
-                )
-                try:
-                    # Try to pull/sync changes first
-                    self.pull_changes(remote_name, branch_name)
+                if self.global_config.git_auto_sync:
+                    console.print(
+                        "🔄 [blue]Repository has diverged. "
+                        "Attempting to sync and retry...[/blue]"
+                    )
+                    try:
+                        # Try to pull/sync changes first
+                        self.pull_changes(remote_name, branch_name)
 
-                    # Retry the push
-                    console.print("🔄 Retrying push after sync...")
-                    retry_push_info = origin.push(branch_name)
+                        # Retry the push
+                        console.print("🔄 Retrying push after sync...")
+                        retry_push_info = origin.push(branch_name)
 
-                    # Check retry results
-                    if retry_push_info:
-                        retry_result = retry_push_info[0]
-                        if retry_result.flags & (
-                            retry_result.ERROR | retry_result.REJECTED
-                        ):
-                            console.print(
-                                f"❌ Retry push failed: {retry_result.summary}"
-                            )
-                            console.print(
-                                "💡 [dim]Manual intervention may be required[/dim]"
-                            )
+                        # Check retry results
+                        if retry_push_info:
+                            retry_result = retry_push_info[0]
+                            if retry_result.flags & (
+                                retry_result.ERROR | retry_result.REJECTED
+                            ):
+                                console.print(
+                                    f"❌ Retry push failed: {retry_result.summary}"
+                                )
+                                console.print(
+                                    "💡 [dim]Manual intervention may be required[/dim]"
+                                )
+                            else:
+                                console.print("✅ Push succeeded after sync!")
+                                return
                         else:
                             console.print("✅ Push succeeded after sync!")
                             return
-                    else:
-                        console.print("✅ Push succeeded after sync!")
-                        return
 
-                except Exception as sync_error:
-                    console.print(f"❌ Sync and retry failed: {sync_error}")
+                    except Exception as sync_error:
+                        console.print(f"❌ Sync and retry failed: {sync_error}")
+                        console.print(
+                            "💡 [dim]You may need to resolve conflicts manually[/dim]"
+                        )
+                else:
                     console.print(
-                        "💡 [dim]You may need to resolve conflicts manually[/dim]"
+                        "🔄 [yellow]Repository has diverged. Auto-sync is disabled.[/yellow]"
+                    )
+                    console.print(
+                        "💡 [dim]Run 'install-sync sync' to pull changes first, "
+                        "or enable auto-sync: 'install-sync config set git_auto_sync true'[/dim]"
                     )
 
             # Check for authentication/permission errors
@@ -272,6 +290,16 @@ class GitManager:
                         "💡 [dim]Check your repository manually to verify "
                         "changes[/dim]"
                     )
+
+    def sync_before_operation(self, operation_name: str = "operation") -> None:
+        """Sync repository before operation if auto-sync is enabled."""
+        if self.global_config.git_auto_sync_on_list:
+            console.print(f"🔄 [dim]Syncing repository before {operation_name}...[/dim]")
+            try:
+                self.pull_changes()
+            except Exception as e:
+                console.print(f"⚠️  [yellow]Sync failed: {e}[/yellow]")
+                console.print("💡 [dim]Continuing with local data[/dim]")
 
     def pull_changes(
         self, remote_name: str = "origin", branch_name: str = "main"
