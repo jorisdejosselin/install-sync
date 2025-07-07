@@ -5,8 +5,8 @@ description = "Cross-platform software installation manager with git tracking"
 authors = ["Joris <joris@example.com>"]
 readme = "README.md"
 license = "MIT"
-homepage = "https://github.com/joris/install-sync"
-repository = "https://github.com/joris/install-sync"
+homepage = "https://github.com/jorisdejosselin/install-sync"
+repository = "https://github.com/jorisdejosselin/install-sync"
 keywords = ["package-manager", "automation", "cross-platform", "git"]
 classifiers = [
     "Development Status :: 4 - Beta",

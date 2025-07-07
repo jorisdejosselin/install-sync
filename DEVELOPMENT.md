@@ -6,7 +6,7 @@ This guide covers the development workflow for install-sync using Poetry.
 
 ```bash
 # Clone and install
-git clone https://github.com/joris/install-sync.git
+git clone https://github.com/jorisdejosselin/install-sync.git
 cd install-sync
 poetry install
 

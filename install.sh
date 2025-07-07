@@ -2,9 +2,9 @@
 set -e
 
 # install-sync installation script
-# Usage: curl -sSL https://raw.githubusercontent.com/joris/install-sync/main/install.sh | bash
+# Usage: curl -sSL https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/install.sh | bash
 
-REPO="joris/install-sync"
+REPO="jorisdejosselin/install-sync"
 BINARY_NAME="install-sync"
 INSTALL_DIR="$HOME/.local/bin"
 

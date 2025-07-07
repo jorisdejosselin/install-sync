@@ -158,7 +158,7 @@ def _create_readme(repo_name: str) -> None:
     readme_content = f"""# {repo_name}
 
 Personal software package tracking across multiple machines using
-[install-sync](https://github.com/joris/install-sync).
+[install-sync](https://github.com/jorisdejosselin/install-sync).
 
 ## Files
 

@@ -1,6 +1,6 @@
 # test-repo
 
-Personal software package tracking across multiple machines using [install-sync](https://github.com/joris/install-sync).
+Personal software package tracking across multiple machines using [install-sync](https://github.com/jorisdejosselin/install-sync).
 
 ## Files
 

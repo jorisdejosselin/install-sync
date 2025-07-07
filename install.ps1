@@ -1,5 +1,5 @@
 # install-sync installation script for Windowss
-# Usage: iwr -useb https://raw.githubusercontent.com/joris/install-sync/main/install.ps1 | iex
+# Usage: iwr -useb https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/install.ps1 | iex
 
 param(
     [string]$InstallDir = "$env:USERPROFILE\.local\bin"
@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$Repo = "joris/install-sync"
+$Repo = "jorisdejosselin/install-sync"
 $BinaryName = "install-sync"
 
 # Logging functions

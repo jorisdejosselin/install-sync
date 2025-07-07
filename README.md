@@ -2,8 +2,8 @@
 
 Cross-platform software installation manager with git tracking for personal use across multiple machines.
 
-[![CI/CD Pipeline](https://github.com/joris/install-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/joris/install-sync/actions/workflows/ci.yml)
-[![Release](https://github.com/joris/install-sync/actions/workflows/release.yml/badge.svg)](https://github.com/joris/install-sync/actions/workflows/release.yml)
+[![CI/CD Pipeline](https://github.com/jorisdejosselin/install-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/jorisdejosselin/install-sync/actions/workflows/ci.yml)
+[![Release](https://github.com/jorisdejosselin/install-sync/actions/workflows/release.yml/badge.svg)](https://github.com/jorisdejosselin/install-sync/actions/workflows/release.yml)
 [![PyPI version](https://badge.fury.io/py/install-sync.svg)](https://badge.fury.io/py/install-sync)
 
 ## Features
@@ -23,10 +23,10 @@ Once the first release is published, you can install using these one-liners:
 
 ```bash
 # Linux/macOS
-curl -sSL https://raw.githubusercontent.com/joris/install-sync/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/install.sh | bash
 
 # Windows (PowerShell)
-iwr -useb https://raw.githubusercontent.com/joris/install-sync/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/install.ps1 | iex
 ```
 
 ### Download Binary
@@ -41,7 +41,7 @@ Make the binary executable and place it in your PATH.
 
 ### From Source
 ```bash
-git clone https://github.com/joris/install-sync.git
+git clone https://github.com/jorisdejosselin/install-sync.git
 cd install-sync
 poetry install
 poetry run install-sync --help
@@ -295,7 +295,7 @@ For the best development experience, use Poetry's virtual environment:
 
 ```bash
 # Clone and setup
-git clone https://github.com/joris/install-sync.git
+git clone https://github.com/jorisdejosselin/install-sync.git
 cd install-sync
 poetry install
 
@@ -328,7 +328,7 @@ $(poetry env info --path)\Scripts\activate     # Windows
 
 ### Setup
 ```bash
-git clone https://github.com/joris/install-sync.git
+git clone https://github.com/jorisdejosselin/install-sync.git
 cd install-sync
 poetry install
 $(poetry env activate)  # Activate virtual environment
