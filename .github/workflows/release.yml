@@ -97,7 +97,7 @@ jobs:
         id: binary-name
         run: |
           if [ "${{ matrix.platform }}" = "windows" ]; then
-            echo "name=install-sync-${{ matrix.platform }}-${{ matrix.arch }}.exe" >> $GITHUB_OUTPUT
+            echo "name=install-sync-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
             echo "artifact=install-sync-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
           else
             echo "name=install-sync-${{ matrix.platform }}-${{ matrix.arch }}" >> $GITHUB_OUTPUT
@@ -135,6 +135,8 @@ jobs:
                 --collect-all rich \
                 --collect-all pydantic \
                 cli_entry.py
+              # Rename the output file to have .exe extension
+              mv "dist/${{ steps.binary-name.outputs.name }}.exe" "dist/${{ steps.binary-name.outputs.name }}.exe"
             else
               poetry run pyinstaller --onefile \
                 --name ${{ steps.binary-name.outputs.name }} \
@@ -162,7 +164,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.binary-name.outputs.artifact }}
-          path: dist/${{ steps.binary-name.outputs.name }}*
+          path: |
+            dist/${{ steps.binary-name.outputs.name }}${{ matrix.platform == 'windows' && '.exe' || '' }}
 
   upload-assets:
     needs: [release, build]

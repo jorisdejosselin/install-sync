@@ -91,6 +91,15 @@ function Install-Binary {
         # Move to install directory
         Move-Item -Path $tempFile -Destination $finalPath -Force
 
+        # Unblock the file to prevent execution errors
+        try {
+            Unblock-File -Path $finalPath
+            Write-Info "Unblocked executable for execution"
+        }
+        catch {
+            Write-Warning "Could not unblock file automatically - you may need to manually unblock it"
+        }
+
         Write-Success "Installed $BinaryName to $finalPath"
         return $finalPath
     }
