@@ -391,7 +391,7 @@ def install(
 
 @app.command()
 def track(
-    package: str = typer.Argument(..., help="Package name to track"),
+    package: Optional[str] = typer.Argument(None, help="Package name to track"),
     manager: Optional[str] = typer.Option(
         None,
         "--manager",
@@ -403,6 +403,13 @@ def track(
     ),
 ) -> None:
     """Track an already installed package without installing it."""
+    if package is None:
+        # Show help when no package is provided
+        import sys
+        ctx = typer.Context(track)
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
+        
     config = load_config()
     machine = MachineProfile.create_current()
     
@@ -453,7 +460,9 @@ def track(
         try:
             tracking_dir = get_tracking_directory()
             if (tracking_dir / ".git").exists():
-                git_manager = GitManager(tracking_dir)
+                git_manager = GitManager(
+                    tracking_dir, config.git, debug_mode=is_debug_mode()
+                )
                 if git_manager.commit_changes(f"Track existing package: {package} on {machine.hostname}"):
                     git_manager.push_changes()
             else:

@@ -345,13 +345,32 @@ class WingetManager(PackageManager):
                 text=True,
                 check=True,
             )
-            # Parse version from winget output (simplified)
             lines = result.stdout.strip().split("\n")
+            
+            # Skip header lines and find the package entry
             for line in lines:
-                if package_name.lower() in line.lower():
-                    parts = line.split()
+                if (package_name.lower() in line.lower() and 
+                    not line.startswith("Name") and 
+                    not line.startswith("-") and 
+                    line.strip()):
+                    
+                    # Split by multiple spaces/tabs to handle formatted output
+                    import re
+                    parts = re.split(r'\s{2,}', line.strip())
+                    
+                    # Winget output format: Name, Id, Version, Available, Source
+                    # Look for version-like string (contains numbers and dots)
+                    for part in parts:
+                        if re.match(r'^\d+[\d\.\-\w]*$', part.strip()):
+                            return part.strip()
+                    
+                    # Fallback: if we have at least 3 parts, assume 3rd is version
                     if len(parts) >= 3:
-                        return parts[2]
+                        version_candidate = parts[2].strip()
+                        # Only return if it looks like a version
+                        if re.match(r'[\d\.\-\w]+', version_candidate):
+                            return version_candidate
+            
             return None
         except subprocess.CalledProcessError:
             return None
