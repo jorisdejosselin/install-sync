@@ -181,8 +181,9 @@ jobs:
         run: ls -la dist/
 
       - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.release.outputs.tag }}
           files: |
             dist/install-sync-linux-amd64/install-sync-linux-amd64
             dist/install-sync-windows-amd64/install-sync-windows-amd64.exe
@@ -219,34 +220,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  publish:
-    needs: release
-    runs-on: ubuntu-latest
-    if: needs.release.outputs.released == 'true'
+  # publish:
+  #   needs: release
+  #   runs-on: ubuntu-latest
+  #   if: needs.release.outputs.released == 'true'
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
+  #     - name: Set up Python 3.11
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: "3.11"
 
-      - name: Install Poetry
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install poetry==1.8.3
+  #     - name: Install Poetry
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         python -m pip install poetry==1.8.3
 
-      - name: Configure Poetry
-        run: |
-          poetry config virtualenvs.create true
-          poetry config virtualenvs.in-project true
+  #     - name: Configure Poetry
+  #       run: |
+  #         poetry config virtualenvs.create true
+  #         poetry config virtualenvs.in-project true
 
-      - name: Install dependencies
-        run: poetry install --no-interaction
+  #     - name: Install dependencies
+  #       run: poetry install --no-interaction
 
-      - name: Build package
-        run: poetry build
+  #     - name: Build package
+  #       run: poetry build
 
-      - name: Publish to PyPI
-        run: poetry publish --username __token__ --password ${{ secrets.PYPI_TOKEN }}
+  #     - name: Publish to PyPI
+  #       run: poetry publish --username __token__ --password ${{ secrets.PYPI_TOKEN }}
