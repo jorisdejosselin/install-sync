@@ -11,8 +11,9 @@ jobs:
   release:
     runs-on: ubuntu-latest
     outputs:
-      new-release-published: ${{ steps.semantic.outputs.new-release-published }}
-      new-release-version: ${{ steps.semantic.outputs.new-release-version }}
+      released: ${{ steps.semantic.outputs.released }}
+      version: ${{ steps.semantic.outputs.version }}
+      tag: ${{ steps.semantic.outputs.tag }}
 
     steps:
       - uses: actions/checkout@v4
@@ -44,10 +45,16 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           root_options: --verbose
+      
+      - name: Check semantic release outputs
+        run: |
+          echo "released: ${{ steps.semantic.outputs.released }}"
+          echo "version: ${{ steps.semantic.outputs.version }}"
+          echo "tag: ${{ steps.semantic.outputs.tag }}"
 
   build:
     needs: release
-    if: needs.release.outputs.new-release-published == 'true'
+    if: needs.release.outputs.released == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -160,7 +167,7 @@ jobs:
   upload-assets:
     needs: [release, build]
     runs-on: ubuntu-latest
-    if: needs.release.outputs.new-release-published == 'true'
+    if: needs.release.outputs.released == 'true'
 
     steps:
       - uses: actions/checkout@v4
@@ -215,7 +222,7 @@ jobs:
   publish:
     needs: release
     runs-on: ubuntu-latest
-    if: needs.release.outputs.new-release-published == 'true'
+    if: needs.release.outputs.released == 'true'
 
     steps:
       - uses: actions/checkout@v4
