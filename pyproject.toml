@@ -80,3 +80,9 @@ python_functions = ["test_*"]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 major_on_zero = true
 commit_author = "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+
+# Custom commit parsing to recognize your commit types
+[tool.semantic_release.commit_parser_options]
+allowed_tags = ["feature", "feat", "bug", "fix", "perf", "docs", "style", "refactor", "test", "chore"]
+minor_tags = ["feature", "feat"]
+patch_tags = ["bug", "fix", "perf"]

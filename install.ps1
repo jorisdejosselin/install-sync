@@ -1,4 +1,4 @@
-# install-sync installation script for Windows
+# install-sync installation script for Windowss
 # Usage: iwr -useb https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/install.ps1 | iex
 
 param(
