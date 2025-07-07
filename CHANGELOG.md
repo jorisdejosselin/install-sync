@@ -2,6 +2,21 @@
 
 
 
+## v0.7.0 (2025-07-07)
+
+### Feature
+
+* feat: add initial release workflow ([`a7e4efa`](https://github.com/jorisdejosselin/install-sync/commit/a7e4efae9885b3a89bcdd134ee8a62f9e1804143))
+
+* feat: add initial release workflow ([`5e7a049`](https://github.com/jorisdejosselin/install-sync/commit/5e7a04966848c4b2d850ca76cf3d76a97d8ba596))
+
+### Unknown
+
+* Merge pull request #4 from jorisdejosselin/develop
+
+feat: add initial release workflow ([`787a216`](https://github.com/jorisdejosselin/install-sync/commit/787a216599521a8c8940b0b4ffb410e5d6562d94))
+
+
 ## v0.6.0 (2025-07-07)
 
 ### Feature
