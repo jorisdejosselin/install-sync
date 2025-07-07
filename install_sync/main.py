@@ -411,8 +411,18 @@ def track(
     """Track an already installed package without installing it."""
     if package is None:
         # Show help when no package is provided
-        ctx = typer.Context(track)
-        typer.echo(ctx.get_help())
+        console.print("Usage: install-sync track [OPTIONS] PACKAGE")
+        console.print("\nTrack an already installed package without installing it.")
+        console.print("\n[bold]Arguments:[/bold]")
+        console.print("  PACKAGE  Package name to track")
+        console.print("\n[bold]Options:[/bold]")
+        console.print(
+            "  --manager, -m  TEXT  Package manager used (brew, winget, apt, poetry)"
+        )
+        console.print(
+            "  --version, -v  TEXT  Package version (auto-detected if not provided)"
+        )
+        console.print("  --help               Show this message and exit.")
         raise typer.Exit()
 
     config = load_config()
