@@ -2,6 +2,15 @@
 
 
 
+## v0.2.0 (2025-07-07)
+
+### Feature
+
+* feat: add initial release workflow ([`51b2e9d`](https://github.com/jorisdejosselin/install-sync/commit/51b2e9d545eb47953f50278b75d7d81978d21694))
+
+* feat: add initial release workflow ([`b6e9aed`](https://github.com/jorisdejosselin/install-sync/commit/b6e9aedd2d7002ec31fbe9b4522fdd55bea1be67))
+
+
 ## v0.1.0 (2025-07-06)
 
 ### Feature
