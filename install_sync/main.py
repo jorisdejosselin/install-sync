@@ -17,6 +17,7 @@ from .git_manager import GitManager
 from .models import Config, GitConfig, GlobalConfig, MachineProfile, PackageInfo
 from .package_managers import PackageManagerFactory
 from .repo_manager import RepoManager
+from .symbols import SYMBOLS
 
 app = typer.Typer(
     name="install-sync",
@@ -246,6 +247,20 @@ def get_tracking_directory() -> Path:
     except Exception:
         debug_print("No repo config found or tracking_directory not set")
 
+    # Check global config for default tracking directory
+    try:
+        global_config = load_global_config()
+        if global_config.default_tracking_directory:
+            default_dir = (
+                Path(global_config.default_tracking_directory).expanduser().resolve()
+            )
+            debug_print(
+                f"Using default tracking directory from global config: {default_dir}"
+            )
+            return default_dir
+    except Exception:
+        debug_print("No global config found or default_tracking_directory not set")
+
     # IMPORTANT: Prevent source code contamination
     # If we're in the install-sync development directory, use default tracking directory
     if (
@@ -264,9 +279,10 @@ def get_tracking_directory() -> Path:
         debug_print(f"Development directory detected, using: {default_tracking_dir}")
         return default_tracking_dir
 
-    # Default to current directory (legacy behavior)
-    debug_print(f"Using current directory: {current_dir}")
-    return current_dir
+    # Final fallback: use ~/package-tracking as sensible default
+    default_tracking_dir = Path.home() / "package-tracking"
+    debug_print(f"Using fallback default tracking directory: {default_tracking_dir}")
+    return default_tracking_dir
 
 
 def load_config() -> Config:
@@ -338,7 +354,9 @@ def install(
         raise typer.Exit(1)
 
     # Install package
-    console.print(f"🔧 Installing [bold]{package}[/bold] using {manager}...")
+    console.print(
+        f"{SYMBOLS['install']} Installing [bold]{package}[/bold] using {manager}..."
+    )
 
     if pkg_manager.install(package):
         # Get version info
@@ -375,6 +393,111 @@ def install(
                 console.print(f"⚠️  Git operations failed: {e}")
     else:
         raise typer.Exit(1)
+
+
+@app.command()
+def track(
+    package: Optional[str] = typer.Argument(None, help="Package name to track"),
+    manager: Optional[str] = typer.Option(
+        None,
+        "--manager",
+        "-m",
+        help="Package manager used (brew, winget, apt, poetry)",
+    ),
+    version: Optional[str] = typer.Option(
+        None, "--version", "-v", help="Package version (auto-detected if not provided)"
+    ),
+) -> None:
+    """Track an already installed package without installing it."""
+    if package is None:
+        # Show help when no package is provided
+        console.print("Usage: install-sync track [OPTIONS] PACKAGE")
+        console.print("\nTrack an already installed package without installing it.")
+        console.print("\n[bold]Arguments:[/bold]")
+        console.print("  PACKAGE  Package name to track")
+        console.print("\n[bold]Options:[/bold]")
+        console.print(
+            "  --manager, -m  TEXT  Package manager used (brew, winget, apt, poetry)"
+        )
+        console.print(
+            "  --version, -v  TEXT  Package version (auto-detected if not provided)"
+        )
+        console.print("  --help               Show this message and exit.")
+        raise typer.Exit()
+
+    config = load_config()
+    machine = MachineProfile.create_current()
+
+    # Update machine profile
+    config.machines[machine.profile_id] = machine
+
+    # Check if already tracked
+    if config.is_package_installed(machine.profile_id, package):
+        console.print(
+            f"{SYMBOLS['package']} Package [bold]{package}[/bold] is already tracked"
+        )
+        return
+
+    # Determine package manager
+    try:
+        if manager:
+            pkg_manager = PackageManagerFactory.get_manager(manager)
+        else:
+            pkg_manager = PackageManagerFactory.get_default_manager()
+            manager = pkg_manager.__class__.__name__.replace("Manager", "").lower()
+    except ValueError as e:
+        console.print(f"{SYMBOLS['error']} {e}")
+        raise typer.Exit(1)
+
+    # Check if package is actually installed
+    if not pkg_manager.is_installed(package):
+        console.print(
+            f"{SYMBOLS['error']} Package [bold]{package}[/bold] is not installed on this system"
+        )
+        console.print(f"Use 'install-sync install {package}' to install it first")
+        raise typer.Exit(1)
+
+    # Get version if not provided
+    if not version:
+        version = pkg_manager.get_version(package)
+
+    console.print(
+        f"{SYMBOLS['package']} Tracking [bold]{package}[/bold] "
+        f"(version: {version or 'unknown'}) using {manager}"
+    )
+
+    # Add package to tracking
+    package_info = PackageInfo(
+        name=package,
+        package_manager=manager,
+        version=version,
+    )
+    config.add_package(machine.profile_id, package_info)
+    save_config(config)
+
+    console.print(
+        f"{SYMBOLS['success']} Package [bold]{package}[/bold] is now being tracked"
+    )
+
+    # Git operations
+    if should_perform_git_operations():
+        try:
+            tracking_dir = get_tracking_directory()
+            if (tracking_dir / ".git").exists():
+                git_manager = GitManager(
+                    tracking_dir, config.git, debug_mode=is_debug_mode()
+                )
+                git_manager.commit_changes(
+                    f"Track existing package: {package} on {machine.machine_name}"
+                )
+                git_manager.push_changes()
+            else:
+                console.print(
+                    f"{SYMBOLS['info']} Not a git repository. Run 'install-sync repo setup' "
+                    "to enable git tracking."
+                )
+        except Exception as e:
+            console.print(f"{SYMBOLS['warning']} Git operations failed: {e}")
 
 
 @app.command()

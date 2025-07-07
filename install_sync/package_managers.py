@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 
 from rich.console import Console
 
+from .symbols import SYMBOLS
+
 console = Console()
 
 
@@ -61,7 +63,7 @@ class BrewManager(PackageManager):
                 text=True,
                 check=True,
             )
-            console.print(f"✅ Successfully installed {package_name}")
+            console.print(f"{SYMBOLS['success']} Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
@@ -85,7 +87,7 @@ class BrewManager(PackageManager):
                     "💡 [dim]Check Homebrew permissions or try with sudo[/dim]"
                 )
             else:
-                console.print(f"❌ Failed to install {package_name}")
+                console.print(f"{SYMBOLS['error']} Failed to install {package_name}")
                 if stderr:
                     console.print(f"   Error: {stderr}")
                 if stdout:
@@ -195,7 +197,7 @@ class WingetManager(PackageManager):
                 text=True,
                 check=True,
             )
-            console.print(f"✅ Successfully installed {package_name}")
+            console.print(f"{SYMBOLS['success']} Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
@@ -219,13 +221,22 @@ class WingetManager(PackageManager):
                 )
                 return True  # Not really a failure
             elif (
+                "Found an existing package already installed" in stderr
+                and "No available upgrade found" in stderr
+            ):
+                console.print(
+                    f"ℹ️  Package {package_name} is already installed and up to date"
+                )
+                console.print("💡 [dim]Package is already at the latest version[/dim]")
+                return True  # Not really a failure - package is installed and current
+            elif (
                 "cannot be upgraded" in stderr.lower()
                 or "cannot upgrade" in stderr.lower()
             ):
                 console.print(f"❌ Package {package_name} cannot be upgraded via winget")
                 console.print("💡 [dim]Some packages require manual updates[/dim]")
             else:
-                console.print(f"❌ Failed to install {package_name}")
+                console.print(f"{SYMBOLS['error']} Failed to install {package_name}")
                 if stderr:
                     console.print(f"   Error: {stderr}")
                 if stdout:
@@ -334,13 +345,34 @@ class WingetManager(PackageManager):
                 text=True,
                 check=True,
             )
-            # Parse version from winget output (simplified)
             lines = result.stdout.strip().split("\n")
+
+            # Skip header lines and find the package entry
             for line in lines:
-                if package_name.lower() in line.lower():
-                    parts = line.split()
+                if (
+                    package_name.lower() in line.lower()
+                    and not line.startswith("Name")
+                    and not line.startswith("-")
+                    and line.strip()
+                ):
+                    # Split by multiple spaces/tabs to handle formatted output
+                    import re
+
+                    parts = re.split(r"\s{2,}", line.strip())
+
+                    # Winget output format: Name, Id, Version, Available, Source
+                    # Look for version-like string (contains numbers and dots)
+                    for part in parts:
+                        if re.match(r"^\d+[\d\.\-\w]*$", part.strip()):
+                            return part.strip()
+
+                    # Fallback: if we have at least 3 parts, assume 3rd is version
                     if len(parts) >= 3:
-                        return parts[2]
+                        version_candidate = parts[2].strip()
+                        # Only return if it looks like a version
+                        if re.match(r"[\d\.\-\w]+", version_candidate):
+                            return version_candidate
+
             return None
         except subprocess.CalledProcessError:
             return None
@@ -373,7 +405,7 @@ class AptManager(PackageManager):
                 text=True,
                 check=True,
             )
-            console.print(f"✅ Successfully installed {package_name}")
+            console.print(f"{SYMBOLS['success']} Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
@@ -404,7 +436,7 @@ class AptManager(PackageManager):
                 )
                 console.print("💡 [dim]Try: sudo dpkg --configure -a[/dim]")
             else:
-                console.print(f"❌ Failed to install {package_name}")
+                console.print(f"{SYMBOLS['error']} Failed to install {package_name}")
                 if stderr:
                     console.print(f"   Error: {stderr}")
                 if stdout:
@@ -526,7 +558,7 @@ class PoetryManager(PackageManager):
                 text=True,
                 check=True,
             )
-            console.print(f"✅ Successfully installed {package_name}")
+            console.print(f"{SYMBOLS['success']} Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
@@ -550,7 +582,7 @@ class PoetryManager(PackageManager):
                 console.print("❌ Poetry lock file is outdated")
                 console.print("💡 [dim]Try: poetry lock --no-update[/dim]")
             else:
-                console.print(f"❌ Failed to install {package_name}")
+                console.print(f"{SYMBOLS['error']} Failed to install {package_name}")
                 if stderr:
                     console.print(f"   Error: {stderr}")
                 if stdout:
