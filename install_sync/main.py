@@ -452,7 +452,8 @@ def track(
         version = pkg_manager.get_version(package)
 
     console.print(
-        f"{SYMBOLS['package']} Tracking [bold]{package}[/bold] (version: {version or 'unknown'}) using {manager}"
+        f"{SYMBOLS['package']} Tracking [bold]{package}[/bold] "
+        f"(version: {version or 'unknown'}) using {manager}"
     )
 
     # Add package to tracking
