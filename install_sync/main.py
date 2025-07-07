@@ -463,7 +463,7 @@ def track(
                 git_manager = GitManager(
                     tracking_dir, config.git, debug_mode=is_debug_mode()
                 )
-                if git_manager.commit_changes(f"Track existing package: {package} on {machine.hostname}"):
+                if git_manager.commit_changes(f"Track existing package: {package} on {machine.machine_name}"):
                     git_manager.push_changes()
             else:
                 console.print(
