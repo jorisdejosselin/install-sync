@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 
 from rich.console import Console
 
+from .symbols import SYMBOLS
+
 console = Console()
 
 
@@ -61,7 +63,7 @@ class BrewManager(PackageManager):
                 text=True,
                 check=True,
             )
-            console.print(f"✅ Successfully installed {package_name}")
+            console.print(f"{SYMBOLS['success']} Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
@@ -85,7 +87,7 @@ class BrewManager(PackageManager):
                     "💡 [dim]Check Homebrew permissions or try with sudo[/dim]"
                 )
             else:
-                console.print(f"❌ Failed to install {package_name}")
+                console.print(f"{SYMBOLS['error']} Failed to install {package_name}")
                 if stderr:
                     console.print(f"   Error: {stderr}")
                 if stdout:
@@ -195,7 +197,7 @@ class WingetManager(PackageManager):
                 text=True,
                 check=True,
             )
-            console.print(f"✅ Successfully installed {package_name}")
+            console.print(f"{SYMBOLS['success']} Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
@@ -225,7 +227,7 @@ class WingetManager(PackageManager):
                 console.print(f"❌ Package {package_name} cannot be upgraded via winget")
                 console.print("💡 [dim]Some packages require manual updates[/dim]")
             else:
-                console.print(f"❌ Failed to install {package_name}")
+                console.print(f"{SYMBOLS['error']} Failed to install {package_name}")
                 if stderr:
                     console.print(f"   Error: {stderr}")
                 if stdout:
@@ -373,7 +375,7 @@ class AptManager(PackageManager):
                 text=True,
                 check=True,
             )
-            console.print(f"✅ Successfully installed {package_name}")
+            console.print(f"{SYMBOLS['success']} Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
@@ -404,7 +406,7 @@ class AptManager(PackageManager):
                 )
                 console.print("💡 [dim]Try: sudo dpkg --configure -a[/dim]")
             else:
-                console.print(f"❌ Failed to install {package_name}")
+                console.print(f"{SYMBOLS['error']} Failed to install {package_name}")
                 if stderr:
                     console.print(f"   Error: {stderr}")
                 if stdout:
@@ -526,7 +528,7 @@ class PoetryManager(PackageManager):
                 text=True,
                 check=True,
             )
-            console.print(f"✅ Successfully installed {package_name}")
+            console.print(f"{SYMBOLS['success']} Successfully installed {package_name}")
             return True
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.strip() if e.stderr else ""
@@ -550,7 +552,7 @@ class PoetryManager(PackageManager):
                 console.print("❌ Poetry lock file is outdated")
                 console.print("💡 [dim]Try: poetry lock --no-update[/dim]")
             else:
-                console.print(f"❌ Failed to install {package_name}")
+                console.print(f"{SYMBOLS['error']} Failed to install {package_name}")
                 if stderr:
                     console.print(f"   Error: {stderr}")
                 if stdout:

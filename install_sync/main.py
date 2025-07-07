@@ -17,6 +17,7 @@ from .git_manager import GitManager
 from .models import Config, GitConfig, GlobalConfig, MachineProfile, PackageInfo
 from .package_managers import PackageManagerFactory
 from .repo_manager import RepoManager
+from .symbols import SYMBOLS
 
 app = typer.Typer(
     name="install-sync",
@@ -246,6 +247,16 @@ def get_tracking_directory() -> Path:
     except Exception:
         debug_print("No repo config found or tracking_directory not set")
 
+    # Check global config for default tracking directory
+    try:
+        global_config = load_global_config()
+        if global_config.default_tracking_directory:
+            default_dir = Path(global_config.default_tracking_directory).expanduser().resolve()
+            debug_print(f"Using default tracking directory from global config: {default_dir}")
+            return default_dir
+    except Exception:
+        debug_print("No global config found or default_tracking_directory not set")
+
     # IMPORTANT: Prevent source code contamination
     # If we're in the install-sync development directory, use default tracking directory
     if (
@@ -264,9 +275,10 @@ def get_tracking_directory() -> Path:
         debug_print(f"Development directory detected, using: {default_tracking_dir}")
         return default_tracking_dir
 
-    # Default to current directory (legacy behavior)
-    debug_print(f"Using current directory: {current_dir}")
-    return current_dir
+    # Final fallback: use ~/package-tracking as sensible default
+    default_tracking_dir = Path.home() / "package-tracking"
+    debug_print(f"Using fallback default tracking directory: {default_tracking_dir}")
+    return default_tracking_dir
 
 
 def load_config() -> Config:
@@ -338,7 +350,7 @@ def install(
         raise typer.Exit(1)
 
     # Install package
-    console.print(f"🔧 Installing [bold]{package}[/bold] using {manager}...")
+    console.print(f"{SYMBOLS['install']} Installing [bold]{package}[/bold] using {manager}...")
 
     if pkg_manager.install(package):
         # Get version info
