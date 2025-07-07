@@ -135,8 +135,6 @@ jobs:
                 --collect-all rich \
                 --collect-all pydantic \
                 cli_entry.py
-              # Rename the output file to have .exe extension
-              mv "dist/${{ steps.binary-name.outputs.name }}.exe" "dist/${{ steps.binary-name.outputs.name }}.exe"
             else
               poetry run pyinstaller --onefile \
                 --name ${{ steps.binary-name.outputs.name }} \
