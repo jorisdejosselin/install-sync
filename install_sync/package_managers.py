@@ -221,6 +221,15 @@ class WingetManager(PackageManager):
                 )
                 return True  # Not really a failure
             elif (
+                "Found an existing package already installed" in stderr
+                and "No available upgrade found" in stderr
+            ):
+                console.print(f"ℹ️  Package {package_name} is already installed and up to date")
+                console.print(
+                    f"💡 [dim]Package is already at the latest version[/dim]"
+                )
+                return True  # Not really a failure - package is installed and current
+            elif (
                 "cannot be upgraded" in stderr.lower()
                 or "cannot upgrade" in stderr.lower()
             ):

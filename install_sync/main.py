@@ -390,6 +390,82 @@ def install(
 
 
 @app.command()
+def track(
+    package: str = typer.Argument(..., help="Package name to track"),
+    manager: Optional[str] = typer.Option(
+        None,
+        "--manager",
+        "-m", 
+        help="Package manager used (brew, winget, apt, poetry)",
+    ),
+    version: Optional[str] = typer.Option(
+        None, "--version", "-v", help="Package version (auto-detected if not provided)"
+    ),
+) -> None:
+    """Track an already installed package without installing it."""
+    config = load_config()
+    machine = MachineProfile.create_current()
+    
+    # Update machine profile
+    config.machines[machine.profile_id] = machine
+    
+    # Check if already tracked
+    if config.is_package_installed(machine.profile_id, package):
+        console.print(f"{SYMBOLS['package']} Package [bold]{package}[/bold] is already tracked")
+        return
+    
+    # Determine package manager
+    try:
+        if manager:
+            pkg_manager = PackageManagerFactory.get_manager(manager)
+        else:
+            pkg_manager = PackageManagerFactory.get_default_manager()
+            manager = pkg_manager.__class__.__name__.replace("Manager", "").lower()
+    except ValueError as e:
+        console.print(f"{SYMBOLS['error']} {e}")
+        raise typer.Exit(1)
+    
+    # Check if package is actually installed
+    if not pkg_manager.is_installed(package):
+        console.print(f"{SYMBOLS['error']} Package [bold]{package}[/bold] is not installed on this system")
+        console.print(f"Use 'install-sync install {package}' to install it first")
+        raise typer.Exit(1)
+    
+    # Get version if not provided
+    if not version:
+        version = pkg_manager.get_version(package)
+    
+    console.print(f"{SYMBOLS['package']} Tracking [bold]{package}[/bold] (version: {version or 'unknown'}) using {manager}")
+    
+    # Add package to tracking
+    package_info = PackageInfo(
+        name=package,
+        package_manager=manager,
+        version=version,
+    )
+    config.add_package(machine.profile_id, package_info)
+    save_config(config)
+    
+    console.print(f"{SYMBOLS['success']} Package [bold]{package}[/bold] is now being tracked")
+    
+    # Git operations
+    if should_perform_git_operations():
+        try:
+            tracking_dir = get_tracking_directory()
+            if (tracking_dir / ".git").exists():
+                git_manager = GitManager(tracking_dir)
+                if git_manager.commit_changes(f"Track existing package: {package} on {machine.hostname}"):
+                    git_manager.push_changes()
+            else:
+                console.print(
+                    f"{SYMBOLS['info']} Not a git repository. Run 'install-sync repo setup' "
+                    "to enable git tracking."
+                )
+        except Exception as e:
+            console.print(f"{SYMBOLS['warning']} Git operations failed: {e}")
+
+
+@app.command()
 def uninstall(
     package: str = typer.Argument(..., help="Package name to uninstall"),
     manager: Optional[str] = typer.Option(
