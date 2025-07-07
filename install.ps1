@@ -68,12 +68,15 @@ function Install-Binary {
         [string]$Platform
     )
 
-    $binaryName = "$BinaryName-$Platform.exe"
-    $downloadUrl = "https://github.com/$Repo/releases/download/$Version/$binaryName"
-    $tempFile = "$env:TEMP\$binaryName"
+    $downloadFileName = "$BinaryName-$Platform.exe"
+    $downloadUrl = "https://github.com/$Repo/releases/download/$Version/$downloadFileName"
+    $tempFile = "$env:TEMP\$downloadFileName"
     $finalPath = "$InstallDir\$BinaryName.exe"
 
-    Write-Info "Downloading $binaryName..."
+    Write-Info "Downloading $downloadFileName..."
+    Write-Info "Download URL: $downloadUrl"
+    Write-Info "Temp file: $tempFile"  
+    Write-Info "Final path: $finalPath"
 
     try {
         # Create install directory if it doesn't exist
@@ -100,7 +103,7 @@ function Install-Binary {
             Write-Warning "Could not unblock file automatically - you may need to manually unblock it"
         }
 
-        Write-Success "Installed $BinaryName to $finalPath"
+        Write-Success "Installed to $finalPath"
         return $finalPath
     }
     catch {
