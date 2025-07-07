@@ -8,17 +8,17 @@ from typing import Dict
 def get_symbols() -> Dict[str, str]:
     """Get platform-appropriate symbols."""
     # Check if we're on Windows PowerShell/Command Prompt
-    is_windows_console = (
-        platform.system() == "Windows" and 
-        sys.stdout.encoding not in ["utf-8", "UTF-8"]
-    )
-    
+    is_windows_console = platform.system() == "Windows" and sys.stdout.encoding not in [
+        "utf-8",
+        "UTF-8",
+    ]
+
     if is_windows_console:
         # Windows PowerShell/CMD compatible symbols
         return {
             "install": "[INSTALL]",
             "success": "[SUCCESS]",
-            "error": "[ERROR]", 
+            "error": "[ERROR]",
             "warning": "[WARNING]",
             "info": "[INFO]",
             "debug": "[DEBUG]",
@@ -31,7 +31,7 @@ def get_symbols() -> Dict[str, str]:
         # Unicode emojis for modern terminals
         return {
             "install": "🔧",
-            "success": "✅", 
+            "success": "✅",
             "error": "❌",
             "warning": "⚠️",
             "info": "ℹ️",

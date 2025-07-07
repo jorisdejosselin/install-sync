@@ -75,7 +75,7 @@ function Install-Binary {
 
     Write-Info "Downloading $downloadFileName..."
     Write-Info "Download URL: $downloadUrl"
-    Write-Info "Temp file: $tempFile"  
+    Write-Info "Temp file: $tempFile"
     Write-Info "Final path: $finalPath"
 
     try {

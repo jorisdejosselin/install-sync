@@ -224,10 +224,10 @@ class WingetManager(PackageManager):
                 "Found an existing package already installed" in stderr
                 and "No available upgrade found" in stderr
             ):
-                console.print(f"ℹ️  Package {package_name} is already installed and up to date")
                 console.print(
-                    f"💡 [dim]Package is already at the latest version[/dim]"
+                    f"ℹ️  Package {package_name} is already installed and up to date"
                 )
+                console.print("💡 [dim]Package is already at the latest version[/dim]")
                 return True  # Not really a failure - package is installed and current
             elif (
                 "cannot be upgraded" in stderr.lower()
@@ -346,31 +346,33 @@ class WingetManager(PackageManager):
                 check=True,
             )
             lines = result.stdout.strip().split("\n")
-            
+
             # Skip header lines and find the package entry
             for line in lines:
-                if (package_name.lower() in line.lower() and 
-                    not line.startswith("Name") and 
-                    not line.startswith("-") and 
-                    line.strip()):
-                    
+                if (
+                    package_name.lower() in line.lower()
+                    and not line.startswith("Name")
+                    and not line.startswith("-")
+                    and line.strip()
+                ):
                     # Split by multiple spaces/tabs to handle formatted output
                     import re
-                    parts = re.split(r'\s{2,}', line.strip())
-                    
+
+                    parts = re.split(r"\s{2,}", line.strip())
+
                     # Winget output format: Name, Id, Version, Available, Source
                     # Look for version-like string (contains numbers and dots)
                     for part in parts:
-                        if re.match(r'^\d+[\d\.\-\w]*$', part.strip()):
+                        if re.match(r"^\d+[\d\.\-\w]*$", part.strip()):
                             return part.strip()
-                    
+
                     # Fallback: if we have at least 3 parts, assume 3rd is version
                     if len(parts) >= 3:
                         version_candidate = parts[2].strip()
                         # Only return if it looks like a version
-                        if re.match(r'[\d\.\-\w]+', version_candidate):
+                        if re.match(r"[\d\.\-\w]+", version_candidate):
                             return version_candidate
-            
+
             return None
         except subprocess.CalledProcessError:
             return None

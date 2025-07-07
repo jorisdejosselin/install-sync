@@ -251,8 +251,12 @@ def get_tracking_directory() -> Path:
     try:
         global_config = load_global_config()
         if global_config.default_tracking_directory:
-            default_dir = Path(global_config.default_tracking_directory).expanduser().resolve()
-            debug_print(f"Using default tracking directory from global config: {default_dir}")
+            default_dir = (
+                Path(global_config.default_tracking_directory).expanduser().resolve()
+            )
+            debug_print(
+                f"Using default tracking directory from global config: {default_dir}"
+            )
             return default_dir
     except Exception:
         debug_print("No global config found or default_tracking_directory not set")
@@ -350,7 +354,9 @@ def install(
         raise typer.Exit(1)
 
     # Install package
-    console.print(f"{SYMBOLS['install']} Installing [bold]{package}[/bold] using {manager}...")
+    console.print(
+        f"{SYMBOLS['install']} Installing [bold]{package}[/bold] using {manager}..."
+    )
 
     if pkg_manager.install(package):
         # Get version info
@@ -395,7 +401,7 @@ def track(
     manager: Optional[str] = typer.Option(
         None,
         "--manager",
-        "-m", 
+        "-m",
         help="Package manager used (brew, winget, apt, poetry)",
     ),
     version: Optional[str] = typer.Option(
@@ -405,22 +411,23 @@ def track(
     """Track an already installed package without installing it."""
     if package is None:
         # Show help when no package is provided
-        import sys
         ctx = typer.Context(track)
         typer.echo(ctx.get_help())
         raise typer.Exit()
-        
+
     config = load_config()
     machine = MachineProfile.create_current()
-    
+
     # Update machine profile
     config.machines[machine.profile_id] = machine
-    
+
     # Check if already tracked
     if config.is_package_installed(machine.profile_id, package):
-        console.print(f"{SYMBOLS['package']} Package [bold]{package}[/bold] is already tracked")
+        console.print(
+            f"{SYMBOLS['package']} Package [bold]{package}[/bold] is already tracked"
+        )
         return
-    
+
     # Determine package manager
     try:
         if manager:
@@ -431,19 +438,23 @@ def track(
     except ValueError as e:
         console.print(f"{SYMBOLS['error']} {e}")
         raise typer.Exit(1)
-    
+
     # Check if package is actually installed
     if not pkg_manager.is_installed(package):
-        console.print(f"{SYMBOLS['error']} Package [bold]{package}[/bold] is not installed on this system")
+        console.print(
+            f"{SYMBOLS['error']} Package [bold]{package}[/bold] is not installed on this system"
+        )
         console.print(f"Use 'install-sync install {package}' to install it first")
         raise typer.Exit(1)
-    
+
     # Get version if not provided
     if not version:
         version = pkg_manager.get_version(package)
-    
-    console.print(f"{SYMBOLS['package']} Tracking [bold]{package}[/bold] (version: {version or 'unknown'}) using {manager}")
-    
+
+    console.print(
+        f"{SYMBOLS['package']} Tracking [bold]{package}[/bold] (version: {version or 'unknown'}) using {manager}"
+    )
+
     # Add package to tracking
     package_info = PackageInfo(
         name=package,
@@ -452,9 +463,11 @@ def track(
     )
     config.add_package(machine.profile_id, package_info)
     save_config(config)
-    
-    console.print(f"{SYMBOLS['success']} Package [bold]{package}[/bold] is now being tracked")
-    
+
+    console.print(
+        f"{SYMBOLS['success']} Package [bold]{package}[/bold] is now being tracked"
+    )
+
     # Git operations
     if should_perform_git_operations():
         try:
@@ -463,8 +476,10 @@ def track(
                 git_manager = GitManager(
                     tracking_dir, config.git, debug_mode=is_debug_mode()
                 )
-                if git_manager.commit_changes(f"Track existing package: {package} on {machine.machine_name}"):
-                    git_manager.push_changes()
+                git_manager.commit_changes(
+                    f"Track existing package: {package} on {machine.machine_name}"
+                )
+                git_manager.push_changes()
             else:
                 console.print(
                     f"{SYMBOLS['info']} Not a git repository. Run 'install-sync repo setup' "
