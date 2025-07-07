@@ -2,6 +2,37 @@
 
 
 
+## v0.9.0 (2025-07-07)
+
+### Bug
+
+* bug: Test pipeline ([`a3f3e2d`](https://github.com/jorisdejosselin/install-sync/commit/a3f3e2ddb81749fc1eca444b694dabcc0e42418c))
+
+* bug: Test pipeline ([`7cc8f2c`](https://github.com/jorisdejosselin/install-sync/commit/7cc8f2cca3b1b108da2828a777d56ab94f7765d0))
+
+* bug: Fix testing suite ([`f5e0457`](https://github.com/jorisdejosselin/install-sync/commit/f5e0457ee56ab73307459e1a4f395bb9ad17dcaa))
+
+* bug: Fix testing suite ([`b344890`](https://github.com/jorisdejosselin/install-sync/commit/b3448902f9dd2f17218079f67f2b22b164a4aa32))
+
+* bug: Fix testing suite ([`be41d25`](https://github.com/jorisdejosselin/install-sync/commit/be41d25ca84b1052b01ba73e02a1ef3127d171ad))
+
+* bug: Fix tracking git commit and push ([`dea9247`](https://github.com/jorisdejosselin/install-sync/commit/dea924737647ff650164c49d70c55d17506b5fae))
+
+* bug: Fix tracking git commit and push ([`4d980de`](https://github.com/jorisdejosselin/install-sync/commit/4d980de0842e0b24c291c88171826ab4928cb7e0))
+
+* bug: fix dir tracking and formatting on windows ([`0deb105`](https://github.com/jorisdejosselin/install-sync/commit/0deb105672a3f7571366df99fcc24afcb5301f46))
+
+### Feature
+
+* feature: add track existing packages without installing ([`5e8fe7c`](https://github.com/jorisdejosselin/install-sync/commit/5e8fe7c96913124ec6a3bca84cc49712bf578ad1))
+
+### Unknown
+
+* Merge pull request #5 from jorisdejosselin/develop
+
+Feature: tracking already installed packages ([`29ee2bb`](https://github.com/jorisdejosselin/install-sync/commit/29ee2bb6bacdfee7781784e3454d5b8e68e1f9f7))
+
+
 ## v0.8.0 (2025-07-07)
 
 ### Feature
