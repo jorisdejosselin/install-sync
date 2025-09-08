@@ -317,6 +317,7 @@ def _bulk_install(
     manager: Optional[str],
     force: bool,
     project_path: Optional[str],
+    is_bulk: bool = True,
 ) -> None:
     """Handle bulk installation of packages from tracked machines."""
     from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -451,11 +452,12 @@ def _bulk_install(
                     # Get version info
                     version = pkg_manager_instance.get_version(pkg_name)
 
-                    # Record installation
-                    package_info = PackageInfo(
-                        name=pkg_name, package_manager=actual_manager, version=version
-                    )
-                    config.add_package(current_machine.profile_id, package_info)
+                    # Record installation (only for single package installs, not bulk)
+                    if not is_bulk:
+                        package_info = PackageInfo(
+                            name=pkg_name, package_manager=actual_manager, version=version
+                        )
+                        config.add_package(current_machine.profile_id, package_info)
 
                     successful_installs.append(f"{pkg_name} ({actual_manager})")
                 else:
@@ -466,31 +468,31 @@ def _bulk_install(
 
             progress.update(task, completed=1)
 
-    # Save configuration with all successful installs
-    if successful_installs:
+    # Save configuration with all successful installs (only for single installs)
+    if successful_installs and not is_bulk:
         save_config(config)
 
-        # Git operations for successful installs
-        if should_perform_git_operations():
-            try:
-                tracking_dir = get_tracking_directory()
-                git_manager = GitManager(
-                    tracking_dir, config.git, debug_mode=is_debug_mode()
+    # Git operations for successful installs
+    if successful_installs and should_perform_git_operations():
+        try:
+            tracking_dir = get_tracking_directory()
+            git_manager = GitManager(
+                tracking_dir, config.git, debug_mode=is_debug_mode()
+            )
+            if git_manager.is_git_repo():
+                message = (
+                    f"Bulk install {len(successful_installs)} packages on "
+                    f"{current_machine.machine_name}"
                 )
-                if git_manager.is_git_repo():
-                    message = (
-                        f"Bulk install {len(successful_installs)} packages on "
-                        f"{current_machine.machine_name}"
-                    )
-                    git_manager.commit_changes(message)
-                    git_manager.push_changes()
-                else:
-                    console.print(
-                        "ℹ️  Not a git repository. Run 'install-sync repo setup' "
-                        "to enable git tracking."
-                    )
-            except Exception as e:
-                console.print(f"⚠️  Git operations failed: {e}")
+                git_manager.commit_changes(message)
+                git_manager.push_changes()
+            else:
+                console.print(
+                    "ℹ️  Not a git repository. Run 'install-sync repo setup' "
+                    "to enable git tracking."
+                )
+        except Exception as e:
+            console.print(f"⚠️  Git operations failed: {e}")
 
     # Show summary
     console.print("\n📊 [bold]Installation Summary:[/bold]")
