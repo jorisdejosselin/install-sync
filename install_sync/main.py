@@ -2,6 +2,7 @@
 
 import json
 import os
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -318,8 +319,6 @@ def _bulk_install(
     project_path: Optional[str],
 ) -> None:
     """Handle bulk installation of packages from tracked machines."""
-    from collections import defaultdict
-
     from rich.progress import Progress, SpinnerColumn, TextColumn
     from rich.prompt import Confirm
 
@@ -380,6 +379,9 @@ def _bulk_install(
     # Group by package manager for better display
     by_manager: Dict[str, List[str]] = defaultdict(list)
     for pkg_name, pkg_manager in packages_to_install:
+        # Defensive coding: ensure we have a list even if defaultdict fails
+        if pkg_manager not in by_manager:
+            by_manager[pkg_manager] = []
         by_manager[pkg_manager].append(pkg_name)
 
     for pkg_manager_name, pkg_list in by_manager.items():
