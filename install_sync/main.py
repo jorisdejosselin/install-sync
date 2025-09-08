@@ -419,8 +419,10 @@ def _bulk_install(
             )
 
             try:
-                # Check if already installed (unless force)
-                if not force and config.is_package_installed(
+                # For bulk install (--all), skip the "already installed" check since
+                # we want to restore packages on a clean/new machine
+                # Only check for single package installs
+                if not force and package and config.is_package_installed(
                     current_machine.profile_id, pkg_name
                 ):
                     skipped_installs.append(f"{pkg_name} (already installed)")
