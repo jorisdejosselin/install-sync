@@ -1,6 +1,23 @@
 # CHANGELOG
 
 
+## v0.10.6 (2025-09-08)
+
+### Bug Fixes
+
+* fix: remove undefined 'package' variable reference in bulk install
+
+- Remove NameError by eliminating undefined 'package' variable check
+- Bulk install now properly skips already-installed check entirely
+- Allows packages to be installed even when tracked in JSON
+
+This fixes the 'name package is not defined' error during bulk install.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com> ([`f67cea7`](https://github.com/jorisdejosselin/install-sync/commit/f67cea7d202ccb59a385fde6f6d59597d585dde3))
+
+
 ## v0.10.5 (2025-09-08)
 
 ### Bug Fixes
