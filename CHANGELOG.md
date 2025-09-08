@@ -1,6 +1,27 @@
 # CHANGELOG
 
 
+## v0.10.1 (2025-09-08)
+
+### Bug Fixes
+
+* fix: replace simulation code with real package installation in bulk install
+
+- Remove simulation logic that was causing AttributeError
+- Implement real package manager installation calls
+- Fix display to show clean package list without source machine info
+- Add proper configuration saving and git operations
+- Remove confusing 'Would install' test artifacts
+- Fix linting issues (unused import, line length, spacing)
+
+This fixes the critical bug where bulk install was not actually
+installing packages and was showing wrong information.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com> ([`5622eb0`](https://github.com/jorisdejosselin/install-sync/commit/5622eb088f09c3ed97f45d436834c4c3ea314514))
+
+
 ## v0.10.0 (2025-09-08)
 
 ### Bug Fixes
