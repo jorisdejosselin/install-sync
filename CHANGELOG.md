@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.10.3 (2025-09-08)
+
+### Bug Fixes
+
+* fix: use current machine's package manager in bulk install
+
+- Fix bulk install to use appropriate package manager for current machine
+- Replace source machine's package manager with current machine's default
+- Ensure packages show correct manager (brew on macOS, apt on Linux, etc)
+- Skip packages that don't have suitable manager for current platform
+
+This fixes the issue where bulk install showed wrong package managers
+(apt/winget packages on macOS instead of brew equivalents).
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com> ([`5233f7f`](https://github.com/jorisdejosselin/install-sync/commit/5233f7fdd085fd8f3dfee1b4d58ee9b635b4421f))
+
+
 ## v0.10.2 (2025-09-08)
 
 ### Bug Fixes
