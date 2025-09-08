@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.10.5 (2025-09-08)
+
+### Bug Fixes
+
+* fix: skip already-installed check for bulk install (--all)
+
+- Skip JSON tracking check for bulk install to allow package restoration
+- Only check already-installed for single package installs
+- Enables restoring tracked packages on clean/new machines
+- Maintains existing behavior for individual package installs
+
+This fixes the issue where bulk install would skip all packages
+because they were tracked in JSON but not actually installed.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com> ([`f19caf1`](https://github.com/jorisdejosselin/install-sync/commit/f19caf157960b709360dc4b34014491da58cce07))
+
+
 ## v0.10.4 (2025-09-08)
 
 ### Bug Fixes
