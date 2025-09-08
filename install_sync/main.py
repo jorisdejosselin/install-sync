@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import typer
 from rich.console import Console
@@ -378,17 +378,14 @@ def _bulk_install(
     console.print("\n📋 [bold]Packages to install:[/bold]")
 
     # Group by package manager for better display
-    by_manager: Dict[str, List[Tuple[str, MachineProfile]]] = defaultdict(list)
+    by_manager: Dict[str, List[str]] = defaultdict(list)
     for pkg_name, pkg_manager in packages_to_install:
-        source_machine = source_machines[pkg_name]
-        by_manager[pkg_manager].append((pkg_name, source_machine))
+        by_manager[pkg_manager].append(pkg_name)
 
     for pkg_manager_name, pkg_list in by_manager.items():
         console.print(f"\n  [bold magenta]{pkg_manager_name.upper()}:[/bold magenta]")
-        for pkg_name, source_machine in pkg_list:
-            console.print(
-                f"    • {pkg_name} [dim](from {source_machine.machine_name})[/dim]"
-            )
+        for pkg_name in sorted(pkg_list):
+            console.print(f"    • {pkg_name}")
 
     if not force and not Confirm.ask(
         f"\nInstall {len(packages_to_install)} packages?", default=True
@@ -408,7 +405,7 @@ def _bulk_install(
     ) as progress:
         for i, (pkg_name, pkg_manager_name) in enumerate(packages_to_install, 1):
             task = progress.add_task(
-                f"Installing {pkg_name} ({i}/{len(packages_to_install)})", total=1
+                f"Installing {pkg_name} ({i}/{len(packages_to_install)})", total = 1
             )
 
             try:
@@ -420,28 +417,75 @@ def _bulk_install(
                     progress.update(task, completed=1)
                     continue
 
-                # Determine which package manager to use
+                # Get package manager instance and install the package
                 if manager:
                     # Use specified manager override
+                    if manager == "poetry" and project_path:
+                        pkg_manager_instance = PackageManagerFactory.get_manager(
+                            manager, project_path=Path(project_path)
+                        )
+                    else:
+                        pkg_manager_instance = PackageManagerFactory.get_manager(
+                            manager
+                        )
                     actual_manager = manager
                 else:
                     # Use original package manager
+                    if pkg_manager_name == "poetry" and project_path:
+                        pkg_manager_instance = PackageManagerFactory.get_manager(
+                            pkg_manager_name, project_path=Path(project_path)
+                        )
+                    else:
+                        pkg_manager_instance = PackageManagerFactory.get_manager(
+                            pkg_manager_name
+                        )
                     actual_manager = pkg_manager_name
 
-                # Install the package (for testing, we'll just simulate)
-                console.print(f"  🔄 Would install {pkg_name} using {actual_manager}")
+                # Install the package
+                if pkg_manager_instance.install(pkg_name):
+                    # Get version info
+                    version = pkg_manager_instance.get_version(pkg_name)
 
-                # Simulate successful installation for testing
-                successful_installs.append(f"{pkg_name} ({actual_manager})")
+                    # Record installation
+                    package_info = PackageInfo(
+                        name=pkg_name, package_manager=actual_manager, version=version
+                    )
+                    config.add_package(current_machine.profile_id, package_info)
+
+                    successful_installs.append(f"{pkg_name} ({actual_manager})")
+                else:
+                    failed_installs.append(f"{pkg_name} ({actual_manager})")
 
             except Exception as e:
                 failed_installs.append(f"{pkg_name} ({pkg_manager_name}): {str(e)}")
 
             progress.update(task, completed=1)
 
-    # Save configuration with all successful installs (simulated for now)
+    # Save configuration with all successful installs
     if successful_installs:
-        console.print("💾 Would save configuration with successful installs")
+        save_config(config)
+
+        # Git operations for successful installs
+        if should_perform_git_operations():
+            try:
+                tracking_dir = get_tracking_directory()
+                git_manager = GitManager(
+                    tracking_dir, config.git, debug_mode=is_debug_mode()
+                )
+                if git_manager.is_git_repo():
+                    message = (
+                        f"Bulk install {len(successful_installs)} packages on "
+                        f"{current_machine.machine_name}"
+                    )
+                    git_manager.commit_changes(message)
+                    git_manager.push_changes()
+                else:
+                    console.print(
+                        "ℹ️  Not a git repository. Run 'install-sync repo setup' "
+                        "to enable git tracking."
+                    )
+            except Exception as e:
+                console.print(f"⚠️  Git operations failed: {e}")
 
     # Show summary
     console.print("\n📊 [bold]Installation Summary:[/bold]")
