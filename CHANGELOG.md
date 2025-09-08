@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.10.4 (2025-09-08)
+
+### Bug Fixes
+
+* fix: use correct machine ID correlation in bulk install
+
+- Fix --all flag to only show packages for current machine ID
+- Remove incorrect cross-machine package aggregation
+- Use direct JSON lookup with current machine's profile_id
+- Preserve original package manager from JSON for current machine
+
+This fixes the issue where bulk install was showing packages from
+all machines instead of just the current machine's tracked packages.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com> ([`7846484`](https://github.com/jorisdejosselin/install-sync/commit/784648401bb70e9db4657f0e1e98fc3318785795))
+
+
 ## v0.10.3 (2025-09-08)
 
 ### Bug Fixes
