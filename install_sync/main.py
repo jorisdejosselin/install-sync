@@ -421,13 +421,6 @@ def _bulk_install(
             try:
                 # For bulk install (--all), skip the "already installed" check since
                 # we want to restore packages on a clean/new machine
-                # Only check for single package installs
-                if not force and package and config.is_package_installed(
-                    current_machine.profile_id, pkg_name
-                ):
-                    skipped_installs.append(f"{pkg_name} (already installed)")
-                    progress.update(task, completed=1)
-                    continue
 
                 # Get package manager instance and install the package
                 if manager:
