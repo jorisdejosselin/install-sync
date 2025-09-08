@@ -366,29 +366,15 @@ def _bulk_install(
             f"📦 Found {len(packages_to_install)} packages from {target_machine.machine_name}"
         )
     else:
-        # Install from all machines (excluding current)
-        for profile_id, machine_profile in config.machines.items():
-            if profile_id == current_machine.profile_id:
-                continue  # Skip current machine
-
-            machine_packages = config.get_current_machine_packages(profile_id)
-            for pkg in machine_packages:
-                # Use current machine's default package manager, not the source machine's
-                try:
-                    current_pkg_manager = PackageManagerFactory.get_default_manager()
-                    manager_name = current_pkg_manager.__class__.__name__.replace(
-                        "Manager", ""
-                    ).lower()
-                    packages_to_install.add((pkg.name, manager_name))
-                    source_machines[pkg.name] = machine_profile
-                except ValueError:
-                    # Skip if no suitable package manager for current machine
-                    debug_print(
-                        f"Skipping {pkg.name} - no suitable package manager for current machine"
-                    )
+        # Install packages for current machine only
+        machine_packages = config.get_current_machine_packages(current_machine.profile_id)
+        for pkg in machine_packages:
+            # Use the original package manager from the JSON for current machine
+            packages_to_install.add((pkg.name, pkg.package_manager))
+            source_machines[pkg.name] = current_machine
 
         console.print(
-            f"📦 Found {len(packages_to_install)} unique packages across all machines"
+            f"📦 Found {len(packages_to_install)} packages for current machine"
         )
 
     if not packages_to_install:
