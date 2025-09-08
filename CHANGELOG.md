@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.10.2 (2025-09-08)
+
+### Bug Fixes
+
+* fix: resolve AttributeError in bulk install by adding defensive list handling
+
+- Fix critical bug where defaultdict was returning None instead of empty list
+- Add defensive coding to ensure by_manager always contains proper lists
+- Remove debug output that was causing confusion
+- Move defaultdict import to top level for reliability
+
+The bulk install feature now works correctly without AttributeError crashes.
+Resolves the 'NoneType' object has no attribute 'append' error.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com> ([`5518923`](https://github.com/jorisdejosselin/install-sync/commit/551892392717d589614dd269b8a8d244975b6e89))
+
+
 ## v0.10.1 (2025-09-08)
 
 ### Bug Fixes
