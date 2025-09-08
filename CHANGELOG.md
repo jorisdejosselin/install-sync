@@ -1,6 +1,26 @@
 # CHANGELOG
 
 
+## v0.10.7 (2025-09-08)
+
+### Bug Fixes
+
+* fix: prevent bulk install from creating duplicate JSON entries
+
+- Add is_bulk parameter to _bulk_install function
+- Skip config.add_package() for bulk installs (packages already tracked)
+- Skip save_config() for bulk installs to prevent JSON modifications
+- Maintain git operations for successful bulk installs
+- Prevent duplicate package entries when restoring on clean machines
+
+This fixes the issue where bulk install was re-adding already tracked
+packages to the JSON file, creating duplicates.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com> ([`2cb11df`](https://github.com/jorisdejosselin/install-sync/commit/2cb11df074f8cd6cd4de911d4fb6e175fdbb2d25))
+
+
 ## v0.10.6 (2025-09-08)
 
 ### Bug Fixes
