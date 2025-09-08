@@ -1,6 +1,41 @@
 # CHANGELOG
 
 
+## v0.10.0 (2025-09-08)
+
+### Bug Fixes
+
+* fix: update semantic-release action to v9.12.0
+
+Update python-semantic-release action from v9.1.1 to v9.12.0 to fix
+Docker build issues with obsolete Debian bullseye-backports repository.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com> ([`d41128d`](https://github.com/jorisdejosselin/install-sync/commit/d41128d66e9c78c98ea5e12cd5b02229d39b8468))
+
+### Features
+
+* feat: add bulk install functionality with --all flag
+
+- Add --all flag to install command for bulk package installation
+- Add --from-machine option to install from specific machines
+- Implement package discovery and deduplication across machines
+- Add interactive confirmation and progress tracking
+- Support manager override and force reinstall for bulk operations
+- Maintain backward compatibility with single package installs
+
+This enables the core use case of easily restoring all packages
+on a new machine with 'install-sync install --all'.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com> ([`a8bc386`](https://github.com/jorisdejosselin/install-sync/commit/a8bc38688df0416bbdf557bb2161100050ebe407))
+
+### Unknown
+
+* Merge branch 'develop' ([`21fcb7d`](https://github.com/jorisdejosselin/install-sync/commit/21fcb7dee38d19d2c182e6f8a28174943159aafd))
+
 
 ## v0.9.0 (2025-07-07)
 
@@ -35,14 +70,14 @@ Feature: tracking already installed packages ([`29ee2bb`](https://github.com/jor
 
 ## v0.8.0 (2025-07-07)
 
-### Feature
+### Features
 
 * feat: add initial release workflow ([`f20c82b`](https://github.com/jorisdejosselin/install-sync/commit/f20c82be0ec2c9a48febf40453f7aeaa015afdbe))
 
 
 ## v0.7.0 (2025-07-07)
 
-### Feature
+### Features
 
 * feat: add initial release workflow ([`a7e4efa`](https://github.com/jorisdejosselin/install-sync/commit/a7e4efae9885b3a89bcdd134ee8a62f9e1804143))
 
@@ -57,35 +92,35 @@ feat: add initial release workflow ([`787a216`](https://github.com/jorisdejossel
 
 ## v0.6.0 (2025-07-07)
 
-### Feature
+### Features
 
 * feat: add initial release workflow ([`47c083b`](https://github.com/jorisdejosselin/install-sync/commit/47c083bb9fb4c4334e028293aea65b423b0f04d8))
 
 
 ## v0.5.0 (2025-07-07)
 
-### Feature
+### Features
 
 * feat: add initial release workflow ([`ad872b5`](https://github.com/jorisdejosselin/install-sync/commit/ad872b5768705bde13c5ea38a21ebf7c49a9f9b4))
 
 
 ## v0.4.0 (2025-07-07)
 
-### Feature
+### Features
 
 * feat: add initial release workflow ([`3d3b9be`](https://github.com/jorisdejosselin/install-sync/commit/3d3b9be56b1d064680c608c8b191aaa9acd8601a))
 
 
 ## v0.3.0 (2025-07-07)
 
-### Feature
+### Features
 
 * feat: add initial release workflow ([`ea11b9e`](https://github.com/jorisdejosselin/install-sync/commit/ea11b9e209a234418e61ba4b143191614394de9b))
 
 
 ## v0.2.0 (2025-07-07)
 
-### Feature
+### Features
 
 * feat: add initial release workflow ([`51b2e9d`](https://github.com/jorisdejosselin/install-sync/commit/51b2e9d545eb47953f50278b75d7d81978d21694))
 
@@ -94,7 +129,7 @@ feat: add initial release workflow ([`787a216`](https://github.com/jorisdejossel
 
 ## v0.1.0 (2025-07-06)
 
-### Feature
+### Features
 
 * feat: add initial release workflow ([`e7b5ab5`](https://github.com/jorisdejosselin/install-sync/commit/e7b5ab5bfc8205d59a7c5d8d1d5922abe4d6a3eb))
 
