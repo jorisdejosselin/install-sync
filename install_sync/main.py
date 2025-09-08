@@ -348,8 +348,19 @@ def _bulk_install(
             return
 
         for pkg in target_packages:
-            packages_to_install.add((pkg.name, pkg.package_manager))
-            source_machines[pkg.name] = target_machine
+            # Use current machine's default package manager, not the source machine's
+            try:
+                current_pkg_manager = PackageManagerFactory.get_default_manager()
+                manager_name = current_pkg_manager.__class__.__name__.replace(
+                    "Manager", ""
+                ).lower()
+                packages_to_install.add((pkg.name, manager_name))
+                source_machines[pkg.name] = target_machine
+            except ValueError:
+                # Skip if no suitable package manager for current machine
+                debug_print(
+                    f"Skipping {pkg.name} - no suitable package manager for current machine"
+                )
 
         console.print(
             f"📦 Found {len(packages_to_install)} packages from {target_machine.machine_name}"
@@ -362,8 +373,19 @@ def _bulk_install(
 
             machine_packages = config.get_current_machine_packages(profile_id)
             for pkg in machine_packages:
-                packages_to_install.add((pkg.name, pkg.package_manager))
-                source_machines[pkg.name] = machine_profile
+                # Use current machine's default package manager, not the source machine's
+                try:
+                    current_pkg_manager = PackageManagerFactory.get_default_manager()
+                    manager_name = current_pkg_manager.__class__.__name__.replace(
+                        "Manager", ""
+                    ).lower()
+                    packages_to_install.add((pkg.name, manager_name))
+                    source_machines[pkg.name] = machine_profile
+                except ValueError:
+                    # Skip if no suitable package manager for current machine
+                    debug_print(
+                        f"Skipping {pkg.name} - no suitable package manager for current machine"
+                    )
 
         console.print(
             f"📦 Found {len(packages_to_install)} unique packages across all machines"
@@ -407,7 +429,7 @@ def _bulk_install(
     ) as progress:
         for i, (pkg_name, pkg_manager_name) in enumerate(packages_to_install, 1):
             task = progress.add_task(
-                f"Installing {pkg_name} ({i}/{len(packages_to_install)})", total = 1
+                f"Installing {pkg_name} ({i} / {len(packages_to_install)})", total=1
             )
 
             try:
