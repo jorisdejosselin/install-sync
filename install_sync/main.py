@@ -13,9 +13,10 @@ from rich.panel import Panel
 from rich.table import Table
 from typer import Context
 
+from . import logger as _logger
 from .config_utils import load_global_config, save_global_config
 from .git_manager import GitManager
-from .models import Config, GitConfig, GlobalConfig, MachineProfile, PackageInfo
+from .models import AptRepoConfig, Config, GitConfig, GlobalConfig, MachineProfile, PackageInfo
 from .package_managers import PackageManagerFactory
 from .repo_manager import RepoManager
 from .symbols import SYMBOLS
@@ -60,10 +61,15 @@ def load_global_config_with_debug() -> GlobalConfig:
     """Load global configuration with debug output."""
     try:
         config = load_global_config()
+        _logger.setup(
+            show_error_output_=config.show_error_output,
+            verbose_logging_=config.verbose_logging,
+        )
         debug_print("Loaded global configuration")
         return config
     except Exception as e:
         debug_print(f"Failed to load global config: {e}")
+        _logger.setup()
         return GlobalConfig()
 
 
@@ -405,6 +411,7 @@ def _bulk_install(
         return
 
     # Install packages
+    _logger.clear_recent_errors()
     successful_installs: List[str] = []
     failed_installs: List[str] = []
     skipped_installs: List[str] = []
@@ -446,6 +453,14 @@ def _bulk_install(
                             pkg_manager_name
                         )
                     actual_manager = pkg_manager_name
+
+                # Run apt repo setup if a definition exists for this package
+                if actual_manager == "apt" and pkg_name in config.apt_repos:
+                    apt_mgr = PackageManagerFactory.get_manager("apt")
+                    if not apt_mgr.setup_repo(pkg_name, config.apt_repos[pkg_name]):
+                        failed_installs.append(f"{pkg_name} ({actual_manager})")
+                        progress.update(task, completed=1)
+                        continue
 
                 # Install the package
                 if pkg_manager_instance.install(pkg_name):
@@ -511,6 +526,12 @@ def _bulk_install(
         console.print(f"\n❌ [red]Failed ({len(failed_installs)}):[/red]")
         for pkg_info in failed_installs:
             console.print(f"  • {pkg_info}")
+            pkg_name = pkg_info.split(" (")[0]
+            err = _logger.get_recent_error(pkg_name)
+            if err:
+                first_line = err.splitlines()[0]
+                console.print(f"    [dim]{first_line}[/dim]")
+        console.print(f"\n[dim]Full error log: {_logger.LOG_FILE}[/dim]")
 
     console.print("✅ Bulk installation completed!")
 
@@ -524,7 +545,7 @@ def install(
         None,
         "--manager",
         "-m",
-        help="Package manager to use (brew, winget, apt, poetry)",
+        help="Package manager to use (brew, winget, apt, poetry, snap, pipx, cargo, asdf, script)",
     ),
     force: bool = typer.Option(
         False, "--force", "-f", help="Force installation even if already installed"
@@ -540,6 +561,9 @@ def install(
         "--from-machine",
         help="Install packages from specific machine (use with --all)",
     ),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show full command output for this run"
+    ),
 ) -> None:
     """Install a package using the appropriate package manager."""
     # Validation: ensure either package or --all is provided, not both
@@ -554,6 +578,10 @@ def install(
     config = load_config()
     machine = MachineProfile.create_current()
 
+    if verbose:
+        _logger.show_error_output = True
+        _logger.verbose_logging = True
+
     # Update machine profile
     config.machines[machine.profile_id] = machine
 
@@ -565,11 +593,6 @@ def install(
     # Single package installation (existing logic)
     # At this point package is guaranteed to be not None due to validation
     assert package is not None
-
-    # Check if already installed
-    if not force and config.is_package_installed(machine.profile_id, package):
-        console.print(f"📦 Package [bold]{package}[/bold] is already installed")
-        return
 
     # Get package manager
     try:
@@ -587,6 +610,25 @@ def install(
         console.print(f"❌ {e}")
         raise typer.Exit(1)
 
+    # Check if already installed (both tracked AND actually on the system)
+    if not force and config.is_package_installed(machine.profile_id, package):
+        if pkg_manager.is_installed(package):
+            version = pkg_manager.get_version(package)
+            ver_str = f" ({version})" if version else ""
+            console.print(f"📦 Package [bold]{package}[/bold] is already installed{ver_str}")
+            if verbose:
+                console.print(f"[dim]  manager : {manager}[/dim]")
+                console.print(f"[dim]  verified: found on system via {manager}[/dim]")
+                console.print(f"[dim]  tip     : use --force to reinstall[/dim]")
+            return
+        # Tracked but not present on system — fall through to reinstall
+
+    # Run apt repo setup if a definition exists for this package
+    if manager == "apt" and package in config.apt_repos:
+        apt_mgr = PackageManagerFactory.get_manager("apt")
+        if not apt_mgr.setup_repo(package, config.apt_repos[package]):
+            raise typer.Exit(1)
+
     # Install package
     console.print(
         f"{SYMBOLS['install']} Installing [bold]{package}[/bold] using {manager}..."
@@ -600,31 +642,32 @@ def install(
         package_info = PackageInfo(
             name=package, package_manager=manager, version=version
         )
-        config.add_package(machine.profile_id, package_info)
-        save_config(config)
+        changed = config.add_package(machine.profile_id, package_info)
+        if changed:
+            save_config(config)
 
-        # Git operations
-        if should_perform_git_operations():
-            try:
-                tracking_dir = get_tracking_directory()
-                debug_print(f"Using tracking directory: {tracking_dir}")
+            # Git operations
+            if should_perform_git_operations():
+                try:
+                    tracking_dir = get_tracking_directory()
+                    debug_print(f"Using tracking directory: {tracking_dir}")
 
-                git_manager = GitManager(
-                    tracking_dir, config.git, debug_mode=is_debug_mode()
-                )
-                if git_manager.is_git_repo():
-                    message = config.git.commit_message_template.format(
-                        package=package, machine=machine.machine_name
+                    git_manager = GitManager(
+                        tracking_dir, config.git, debug_mode=is_debug_mode()
                     )
-                    git_manager.commit_changes(message)
-                    git_manager.push_changes()
-                else:
-                    console.print(
-                        "ℹ️  Not a git repository. Run 'install-sync repo setup' "
-                        "to enable git tracking."
-                    )
-            except Exception as e:
-                console.print(f"⚠️  Git operations failed: {e}")
+                    if git_manager.is_git_repo():
+                        message = config.git.commit_message_template.format(
+                            package=package, machine=machine.machine_name
+                        )
+                        git_manager.commit_changes(message)
+                        git_manager.push_changes()
+                    else:
+                        console.print(
+                            "ℹ️  Not a git repository. Run 'install-sync repo setup' "
+                            "to enable git tracking."
+                        )
+                except Exception as e:
+                    console.print(f"⚠️  Git operations failed: {e}")
     else:
         raise typer.Exit(1)
 
@@ -721,32 +764,35 @@ def track(
         package_manager=manager,
         version=version,
     )
-    config.add_package(machine.profile_id, package_info)
-    save_config(config)
+    changed = config.add_package(machine.profile_id, package_info)
+    if changed:
+        save_config(config)
 
-    console.print(
-        f"{SYMBOLS['success']} Package [bold]{package}[/bold] is now being tracked"
-    )
+        console.print(
+            f"{SYMBOLS['success']} Package [bold]{package}[/bold] is now being tracked"
+        )
 
-    # Git operations
-    if should_perform_git_operations():
-        try:
-            tracking_dir = get_tracking_directory()
-            if (tracking_dir / ".git").exists():
-                git_manager = GitManager(
-                    tracking_dir, config.git, debug_mode=is_debug_mode()
-                )
-                git_manager.commit_changes(
-                    f"Track existing package: {package} on {machine.machine_name}"
-                )
-                git_manager.push_changes()
-            else:
-                console.print(
-                    f"{SYMBOLS['info']} Not a git repository. Run 'install-sync repo setup' "
-                    "to enable git tracking."
-                )
-        except Exception as e:
-            console.print(f"{SYMBOLS['warning']} Git operations failed: {e}")
+        # Git operations
+        if should_perform_git_operations():
+            try:
+                tracking_dir = get_tracking_directory()
+                if (tracking_dir / ".git").exists():
+                    git_manager = GitManager(
+                        tracking_dir, config.git, debug_mode=is_debug_mode()
+                    )
+                    git_manager.commit_changes(
+                        f"Track existing package: {package} on {machine.machine_name}"
+                    )
+                    git_manager.push_changes()
+                else:
+                    console.print(
+                        f"{SYMBOLS['info']} Not a git repository. Run 'install-sync repo setup' "
+                        "to enable git tracking."
+                    )
+            except Exception as e:
+                console.print(f"{SYMBOLS['warning']} Git operations failed: {e}")
+    else:
+        console.print(f"ℹ️  {package} is already tracked with the same version")
 
 
 @app.command()
@@ -756,7 +802,7 @@ def uninstall(
         None,
         "--manager",
         "-m",
-        help="Package manager to use (brew, winget, apt, poetry)",
+        help="Package manager to use (brew, winget, apt, poetry, snap, pipx, cargo, asdf, script)",
     ),
     force: bool = typer.Option(
         False, "--force", "-f", help="Force uninstallation even if not tracked"
@@ -869,7 +915,7 @@ def upgrade(
         None,
         "--manager",
         "-m",
-        help="Package manager to use (brew, winget, apt, poetry)",
+        help="Package manager to use (brew, winget, apt, poetry, snap, pipx, cargo, asdf, script)",
     ),
     project_path: Optional[str] = typer.Option(
         None, "--project", "-p", help="Project path for poetry manager"
@@ -1236,6 +1282,159 @@ def info() -> None:
     console.print(Panel(git_info, title="🔧 Git", border_style="yellow"))
 
 
+# Machine management commands
+machine_app = typer.Typer(name="machine", help="Machine profile management")
+app.add_typer(machine_app, name="machine")
+
+
+@machine_app.callback(invoke_without_command=True)
+def machine_callback(ctx: Context) -> None:
+    """Machine profile management commands."""
+    if ctx.invoked_subcommand is None:
+        console.print(ctx.get_help())
+
+
+def _adopt_profile_interactive(config: "Config", tracking_dir: "Path") -> bool:
+    """Show adopt table, prompt user, save override and update config.json.
+
+    Returns True if a profile was adopted, False if cancelled.
+    """
+    from rich.prompt import Prompt
+
+    machines = config.machines
+    if not machines:
+        console.print("No existing machine profiles found.")
+        return False
+
+    # Build table
+    table = Table(title="Existing Machine Profiles")
+    table.add_column("#", style="cyan", justify="right")
+    table.add_column("profile_id", style="magenta")
+    table.add_column("machine_name", style="white")
+    table.add_column("os_type", style="yellow")
+    table.add_column("architecture", style="green")
+    table.add_column("packages", style="blue", justify="right")
+
+    items = list(machines.items())
+    for idx, (profile_id, machine_profile) in enumerate(items, 1):
+        pkg_count = str(len(config.packages.get(profile_id, [])))
+        table.add_row(
+            str(idx),
+            profile_id,
+            machine_profile.machine_name,
+            machine_profile.os_type,
+            machine_profile.architecture,
+            pkg_count,
+        )
+
+    console.print(table)
+
+    choice_str = Prompt.ask(
+        "Enter the number of the profile to adopt (or 0 to cancel)",
+        default="0",
+    )
+
+    try:
+        choice = int(choice_str)
+    except ValueError:
+        console.print("Invalid input, cancelling.")
+        return False
+
+    if choice == 0:
+        console.print("Cancelled.")
+        return False
+
+    if choice < 1 or choice > len(items):
+        console.print(f"Invalid choice: {choice}")
+        return False
+
+    selected_profile_id, selected_machine = items[choice - 1]
+    old_name = selected_machine.machine_name
+    current_machine = MachineProfile.create_current()
+    new_name = current_machine.machine_name
+
+    # Save override to global config
+    global_config = load_global_config()
+    global_config.profile_id_override = selected_profile_id
+    save_global_config(global_config)
+
+    # Update machine_name in config.json to current hostname
+    config.machines[selected_profile_id].machine_name = new_name
+
+    config_file = tracking_dir / "config.json"
+    with open(config_file, "w") as f:
+        import json as _json
+
+        _json.dump(config.dict(), f, indent=2, default=str)
+
+    # Git commit + push
+    try:
+        git_manager = GitManager(tracking_dir, config.git, debug_mode=is_debug_mode())
+        if git_manager.is_git_repo():
+            git_manager.commit_changes(
+                f"Adopt profile {selected_profile_id}: {old_name} -> {new_name}"
+            )
+            git_manager.push_changes()
+    except Exception as e:
+        console.print(f"[yellow]Warning: git operations failed: {e}[/yellow]")
+
+    console.print(
+        f"[green]This machine is now profile [bold]{selected_profile_id}[/bold] "
+        f"({old_name} -> {new_name})[/green]"
+    )
+    return True
+
+
+@machine_app.command()
+def adopt(
+    profile_id: Optional[str] = typer.Argument(
+        None, help="Profile ID to adopt (e.g. 785075ba). Omit for interactive selection."
+    ),
+) -> None:
+    """Adopt an existing profile ID for this machine."""
+    config = load_config()
+    tracking_dir = get_tracking_directory()
+
+    if profile_id:
+        if profile_id not in config.machines:
+            console.print(f"[red]Profile '{profile_id}' not found.[/red]")
+            console.print("Available profiles:")
+            for pid, m in config.machines.items():
+                console.print(f"  {pid}  {m.machine_name}")
+            raise typer.Exit(1)
+
+        old_name = config.machines[profile_id].machine_name
+        current_machine = MachineProfile.create_current()
+        new_name = current_machine.machine_name
+
+        global_config = load_global_config()
+        global_config.profile_id_override = profile_id
+        save_global_config(global_config)
+
+        config.machines[profile_id].machine_name = new_name
+        config_file = tracking_dir / "config.json"
+        with open(config_file, "w") as f:
+            import json as _json
+            _json.dump(config.dict(), f, indent=2, default=str)
+
+        try:
+            git_manager = GitManager(tracking_dir, config.git, debug_mode=is_debug_mode())
+            if git_manager.is_git_repo():
+                git_manager.commit_changes(
+                    f"Adopt profile {profile_id}: {old_name} -> {new_name}"
+                )
+                git_manager.push_changes()
+        except Exception as e:
+            console.print(f"[yellow]Warning: git operations failed: {e}[/yellow]")
+
+        console.print(
+            f"[green]This machine is now profile [bold]{profile_id}[/bold] "
+            f"({old_name} -> {new_name})[/green]"
+        )
+    else:
+        _adopt_profile_interactive(config, tracking_dir)
+
+
 # Repository management commands
 repo_app = typer.Typer(name="repo", help="Repository management commands")
 app.add_typer(repo_app, name="repo")
@@ -1388,7 +1587,7 @@ def clone(
         console.print(f"   • OS: {current_machine.os_type}")
         console.print(f"   • Profile ID: {current_machine.profile_id}")
 
-        # Check if current machine is already tracked
+        # Check if current machine is already tracked; offer adopt if not
         if config_file.exists():
             try:
                 with open(config_file, "r") as f:
@@ -1402,6 +1601,18 @@ def clone(
                         console.print(
                             "   🆕 This is a new machine - will be added when you install packages"
                         )
+                        # Offer to adopt an existing profile
+                        if machines:
+                            from rich.prompt import Confirm
+
+                            n = len(machines)
+                            if Confirm.ask(
+                                f"\nFound {n} existing machine profile(s). "
+                                "Would you like to adopt one for this machine?",
+                                default=False,
+                            ):
+                                cloned_config = load_config()
+                                _adopt_profile_interactive(cloned_config, tracking_dir)
             except Exception:
                 pass
 
@@ -1776,9 +1987,85 @@ def delete() -> None:
         console.print(f"❌ Failed to delete repository: {e}")
 
 
+# Apt repo management commands
+apt_repo_app = typer.Typer(name="apt-repo", help="Manage apt repository definitions")
+app.add_typer(apt_repo_app, name="apt-repo")
+
 # Config management commands
 config_app = typer.Typer(name="config", help="Global configuration management")
 app.add_typer(config_app, name="config")
+
+
+@apt_repo_app.command("add")
+def apt_repo_add(
+    package: str = typer.Argument(..., help="Package name to associate the repo with"),
+    gpg_key_url: str = typer.Option(..., "--gpg-url", help="URL of the GPG signing key"),
+    repo_url: str = typer.Option(..., "--repo-url", help="Base URL of the apt repository"),
+    distribution: Optional[str] = typer.Option(
+        None, "--distribution", help="e.g. focal (auto-detected if omitted)"
+    ),
+    components: str = typer.Option("main", "--components", help="Repo components"),
+    architecture: Optional[str] = typer.Option(
+        None, "--arch", help="e.g. amd64 (auto-detected if omitted)"
+    ),
+    sources_file: Optional[str] = typer.Option(
+        None, "--sources-file", help="Path for sources.list.d file (auto-derived if omitted)"
+    ),
+    keyring_path: Optional[str] = typer.Option(
+        None, "--keyring-path", help="Path for keyring file (auto-derived if omitted)"
+    ),
+) -> None:
+    """Add an apt repository definition for a package (stored in config.json, git-synced)."""
+    config = load_config()
+    config.apt_repos[package] = AptRepoConfig(
+        gpg_key_url=gpg_key_url,
+        repo_url=repo_url,
+        distribution=distribution,
+        components=components,
+        architecture=architecture,
+        sources_file=sources_file,
+        keyring_path=keyring_path,
+    )
+    save_config(config)
+    console.print(f"✅ Apt repo definition saved for [bold]{package}[/bold]")
+    console.print(
+        f"[dim]  gpg-url:  {gpg_key_url}[/dim]\n"
+        f"[dim]  repo-url: {repo_url}[/dim]"
+    )
+    console.print(f"   Run 'install-sync install {package} --manager apt' to install")
+
+
+@apt_repo_app.command("list")
+def apt_repo_list() -> None:
+    """List all configured apt repository definitions."""
+    config = load_config()
+    if not config.apt_repos:
+        console.print("ℹ️  No apt repo definitions configured")
+        return
+    table = Table(title="Apt Repository Definitions")
+    table.add_column("Package", style="bold")
+    table.add_column("GPG Key URL")
+    table.add_column("Repo URL")
+    table.add_column("Distribution")
+    for pkg, repo in config.apt_repos.items():
+        table.add_row(
+            pkg, repo.gpg_key_url, repo.repo_url, repo.distribution or "(auto)"
+        )
+    console.print(table)
+
+
+@apt_repo_app.command("remove")
+def apt_repo_remove(
+    package: str = typer.Argument(..., help="Package name to remove repo definition for"),
+) -> None:
+    """Remove an apt repository definition."""
+    config = load_config()
+    if package not in config.apt_repos:
+        console.print(f"ℹ️  No apt repo definition found for {package}")
+        return
+    del config.apt_repos[package]
+    save_config(config)
+    console.print(f"✅ Removed apt repo definition for {package}")
 
 
 @config_app.callback(invoke_without_command=True)
@@ -1867,6 +2154,16 @@ def config_set(
     tracking_directory: Optional[str] = typer.Option(
         None, "--tracking-directory", help="Set default tracking directory"
     ),
+    show_error_output: Optional[bool] = typer.Option(
+        None,
+        "--show-error-output/--no-show-error-output",
+        help="Show raw stderr in CLI when a package fails (default: on)",
+    ),
+    verbose_logging: Optional[bool] = typer.Option(
+        None,
+        "--verbose-logging/--no-verbose-logging",
+        help="Write all command output to log file (default: off)",
+    ),
 ) -> None:
     """Set global configuration options."""
     global_config = load_global_config_with_debug()
@@ -1910,6 +2207,16 @@ def config_set(
         global_config.default_tracking_directory = str(expanded_path)
         updated = True
         console.print(f"✅ Set default tracking directory: {expanded_path}")
+
+    if show_error_output is not None:
+        global_config.show_error_output = show_error_output
+        updated = True
+        console.print(f"✅ Set show-error-output: {show_error_output}")
+
+    if verbose_logging is not None:
+        global_config.verbose_logging = verbose_logging
+        updated = True
+        console.print(f"✅ Set verbose-logging: {verbose_logging}")
 
     if updated:
         save_global_config_with_debug(global_config)

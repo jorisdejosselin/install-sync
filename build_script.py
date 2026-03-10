@@ -61,6 +61,8 @@ def build_with_pyinstaller() -> None:
         "rich",
         "--collect-all",
         "pydantic",
+        "--collect-all",
+        "shellingham",
         "cli_entry.py",
     ]
 
