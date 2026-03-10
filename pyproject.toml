@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "install-sync"
-version = "0.10.7"
+version = "0.10.8"
 description = "Cross-platform software installation manager with git tracking"
 authors = ["Joris <joris@example.com>"]
 readme = "README.md"

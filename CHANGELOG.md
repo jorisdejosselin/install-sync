@@ -1,6 +1,22 @@
 # CHANGELOG
 
 
+## v0.10.8 (2026-03-10)
+
+### Bug Fixes
+
+* fix: skip git commit prompt when package config is unchanged
+
+- add_package() now uses upsert semantics and returns bool indicating
+  if config actually changed
+- install and track commands only save config and prompt for git commit
+  when the returned value is True
+- track command prints informational message when package is already
+  tracked with same version
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> ([`891eb56`](https://github.com/jorisdejosselin/install-sync/commit/891eb56e1caa5b0b169f6d857d3d3ca4edf33d5f))
+
+
 ## v0.10.7 (2025-09-08)
 
 ### Bug Fixes
