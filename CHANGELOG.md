@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.10.9 (2026-03-11)
+
+### Bug Fixes
+
+* fix: trigger release to rebuild binaries with updated CI runner
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> ([`48bc344`](https://github.com/jorisdejosselin/install-sync/commit/48bc34433ba329e743781a27bb802c5085db0b19))
+
+### Unknown
+
+* ci: replace deprecated macos-13 runner with macos-latest
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> ([`3862c68`](https://github.com/jorisdejosselin/install-sync/commit/3862c687f2fe151a3e90b3314687d0f208dea8a4))
+
+
 ## v0.10.8 (2026-03-10)
 
 ### Bug Fixes
