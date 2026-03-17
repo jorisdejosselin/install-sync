@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.10.10 (2026-03-17)
+
+### Bug Fixes
+
+* fix: show repo path on push errors and fix apt repo setup skipping
+
+- git_manager: include repo path in pre-push sync, push failure, and
+  verification failure error messages
+- package_managers: setup_repo now checks for sources.list.d file
+  instead of apt-cache availability, so repos are set up even when
+  an older version of the package is already installed
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> ([`7ef901b`](https://github.com/jorisdejosselin/install-sync/commit/7ef901b04db861dac94d3e1ff15cb0b56dfbb662))
+
+
 ## v0.10.9 (2026-03-11)
 
 ### Bug Fixes
