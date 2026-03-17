@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.10.11 (2026-03-17)
+
+### Bug Fixes
+
+* fix: apt-repo add validates repo immediately and remove cleans up disk files
+
+- apt-repo add now runs setup_repo immediately after saving, downloading
+  the GPG key and writing the sources file so the repo is validated on add
+- apt-repo remove now deletes the sources file and keyring from disk
+  and runs apt update to clean up properly
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> ([`24ce5f3`](https://github.com/jorisdejosselin/install-sync/commit/24ce5f30fdfbc6d8507ec93b153cc995281ccafc))
+
+
 ## v0.10.10 (2026-03-17)
 
 ### Bug Fixes
