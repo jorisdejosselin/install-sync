@@ -500,10 +500,10 @@ class AptManager(PackageManager):
             return False
 
     def setup_repo(self, package_name: str, repo: Any) -> bool:
-        """Add apt repo for package_name if not already available. Idempotent."""
-        # Skip if package is already locatable (repo already configured)
-        check = subprocess.run(["apt-cache", "show", package_name], capture_output=True)
-        if check.returncode == 0:
+        """Add apt repo for package_name if not already configured. Idempotent."""
+        sources_file = repo.sources_file or f"/etc/apt/sources.list.d/{package_name}.list"
+        # Skip if the sources file already exists (repo already configured)
+        if Path(sources_file).exists():
             return True
 
         console.print(f"🔧 Setting up apt repository for [bold]{package_name}[/bold]...")

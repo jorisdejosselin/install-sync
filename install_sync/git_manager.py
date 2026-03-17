@@ -117,7 +117,7 @@ class GitManager:
                 self.pull_changes(remote_name, branch_name)
             except Exception as e:
                 console.print(f"⚠️  [yellow]Pre-push sync failed: {e}[/yellow]")
-                console.print("💡 [dim]Continuing with push attempt...[/dim]")
+                console.print(f"💡 [dim]Repo: {self.repo_path} — continuing with push attempt...[/dim]")
 
         try:
             origin = self.repo.remote(remote_name)
@@ -178,6 +178,7 @@ class GitManager:
             error_msg = str(e).lower()
 
             console.print(f"⚠️  [yellow]Push failed with error:[/yellow] {e}")
+            console.print(f"💡 [dim]Repo: {self.repo_path}[/dim]")
 
             # Check for specific push failure scenarios
             if (
@@ -298,8 +299,8 @@ class GitManager:
                         "⚠️  Push operation completed, but verification failed"
                     )
                     console.print(
-                        "💡 [dim]Check your repository manually to verify "
-                        "changes[/dim]"
+                        f"💡 [dim]Check your repository manually to verify "
+                        f"changes: {self.repo_path}[/dim]"
                     )
 
     def sync_before_operation(self, operation_name: str = "operation") -> None:
