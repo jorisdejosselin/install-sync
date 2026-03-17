@@ -2026,13 +2026,21 @@ def apt_repo_add(
         sources_file=sources_file,
         keyring_path=keyring_path,
     )
+    repo_def = config.apt_repos[package]
     save_config(config)
     console.print(f"✅ Apt repo definition saved for [bold]{package}[/bold]")
-    console.print(
-        f"[dim]  gpg-url:  {gpg_key_url}[/dim]\n"
-        f"[dim]  repo-url: {repo_url}[/dim]"
-    )
-    console.print(f"   Run 'install-sync install {package} --manager apt' to install")
+
+    # Immediately set up the repo so it's validated and ready to use
+    apt_mgr = PackageManagerFactory.get_manager("apt")
+    # Force setup by removing existing sources file first (re-add should always refresh)
+    sources_path = repo_def.sources_file or f"/etc/apt/sources.list.d/{package}.list"
+    import subprocess as _sp
+    _sp.run(["sudo", "rm", "-f", sources_path], capture_output=True)
+    if apt_mgr.setup_repo(package, repo_def):
+        console.print(f"   Run 'install-sync install {package} --manager apt' to install")
+    else:
+        console.print(f"⚠️  Repository setup failed — definition saved but repo may not be valid")
+        raise typer.Exit(1)
 
 
 @apt_repo_app.command("list")
@@ -2058,13 +2066,36 @@ def apt_repo_list() -> None:
 def apt_repo_remove(
     package: str = typer.Argument(..., help="Package name to remove repo definition for"),
 ) -> None:
-    """Remove an apt repository definition."""
+    """Remove an apt repository definition and clean up files on disk."""
+    import subprocess as _sp
+    from pathlib import Path as _Path
+
     config = load_config()
     if package not in config.apt_repos:
         console.print(f"ℹ️  No apt repo definition found for {package}")
         return
+
+    repo = config.apt_repos[package]
+    sources_file = repo.sources_file or f"/etc/apt/sources.list.d/{package}.list"
+    keyring_path = repo.keyring_path or f"/usr/share/keyrings/{package}-keyring.gpg"
+
     del config.apt_repos[package]
     save_config(config)
+
+    removed = []
+    for path in (sources_file, keyring_path):
+        if _Path(path).exists():
+            result = _sp.run(["sudo", "rm", "-f", path], capture_output=True, text=True)
+            if result.returncode == 0:
+                removed.append(path)
+            else:
+                console.print(f"⚠️  Could not remove {path}: {result.stderr.strip()}")
+
+    if removed:
+        _sp.run(["sudo", "apt-get", "update", "-qq"], capture_output=True)
+        for path in removed:
+            console.print(f"🗑️  Removed {path}")
+
     console.print(f"✅ Removed apt repo definition for {package}")
 
 
