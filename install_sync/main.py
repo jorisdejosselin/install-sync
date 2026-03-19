@@ -16,7 +16,7 @@ from typer import Context
 from . import logger as _logger
 from .config_utils import load_global_config, save_global_config
 from .git_manager import GitManager
-from .models import AptRepoConfig, Config, GitConfig, GlobalConfig, MachineProfile, PackageInfo
+from .models import AptRepoConfig, Config, GitConfig, GlobalConfig, MachineProfile, PackageInfo, ScriptPackageDef
 from .package_managers import PackageManagerFactory
 from .repo_manager import RepoManager
 from .symbols import SYMBOLS
@@ -309,7 +309,6 @@ def save_config(config: Config) -> None:
     tracking_dir = get_tracking_directory()
     config_file = tracking_dir / "config.json"
 
-    # Ensure tracking directory exists
     tracking_dir.mkdir(parents=True, exist_ok=True)
 
     with open(config_file, "w") as f:
@@ -722,13 +721,6 @@ def track(
 
     # Update machine profile
     config.machines[machine.profile_id] = machine
-
-    # Check if already tracked
-    if config.is_package_installed(machine.profile_id, package):
-        console.print(
-            f"{SYMBOLS['package']} Package [bold]{package}[/bold] is already tracked"
-        )
-        return
 
     # Determine package manager
     try:
@@ -2097,6 +2089,81 @@ def apt_repo_remove(
             console.print(f"🗑️  Removed {path}")
 
     console.print(f"✅ Removed apt repo definition for {package}")
+
+
+# ---------------------------------------------------------------------------
+# script subcommand group
+# ---------------------------------------------------------------------------
+
+script_app = typer.Typer(name="script", help="Manage script-based package definitions")
+app.add_typer(script_app, name="script")
+
+
+@script_app.command("add")
+def script_add(
+    package: str = typer.Argument(..., help="Package name"),
+    install_cmd: Optional[str] = typer.Option(None, "--install-cmd", help="Shell command to install the package"),
+    uninstall_cmd: Optional[str] = typer.Option(None, "--uninstall-cmd", help="Shell command to uninstall the package"),
+    check_cmd: Optional[str] = typer.Option(None, "--check-cmd", help="Shell command to check if package is installed"),
+    version_cmd: Optional[str] = typer.Option(None, "--version-cmd", help="Shell command to get the installed version"),
+) -> None:
+    """Add or update a script-based package definition (stored in config.json, git-synced)."""
+    config = load_config()
+    config.script_packages[package] = ScriptPackageDef(
+        install_cmd=install_cmd,
+        uninstall_cmd=uninstall_cmd,
+        check_cmd=check_cmd,
+        version_cmd=version_cmd,
+    )
+    save_config(config)
+    console.print(f"✅ Script definition saved for [bold]{package}[/bold]")
+    defn = config.script_packages[package]
+    if defn.install_cmd:
+        console.print(f"   install:   {defn.install_cmd}")
+    if defn.uninstall_cmd:
+        console.print(f"   uninstall: {defn.uninstall_cmd}")
+    if defn.check_cmd:
+        console.print(f"   check:     {defn.check_cmd}")
+    if defn.version_cmd:
+        console.print(f"   version:   {defn.version_cmd}")
+
+
+@script_app.command("list")
+def script_list() -> None:
+    """List all script-based package definitions."""
+    config = load_config()
+    if not config.script_packages:
+        console.print("ℹ️  No script package definitions configured")
+        return
+    table = Table(title="Script Package Definitions")
+    table.add_column("Package", style="bold")
+    table.add_column("Install Cmd")
+    table.add_column("Uninstall Cmd")
+    table.add_column("Check Cmd")
+    table.add_column("Version Cmd")
+    for pkg, defn in config.script_packages.items():
+        table.add_row(
+            pkg,
+            defn.install_cmd or "",
+            defn.uninstall_cmd or "",
+            defn.check_cmd or "",
+            defn.version_cmd or "",
+        )
+    console.print(table)
+
+
+@script_app.command("remove")
+def script_remove(
+    package: str = typer.Argument(..., help="Package name to remove script definition for"),
+) -> None:
+    """Remove a script-based package definition."""
+    config = load_config()
+    if package not in config.script_packages:
+        console.print(f"ℹ️  No script definition found for {package}")
+        return
+    del config.script_packages[package]
+    save_config(config)
+    console.print(f"✅ Removed script definition for [bold]{package}[/bold]")
 
 
 @config_app.callback(invoke_without_command=True)

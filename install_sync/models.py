@@ -73,6 +73,7 @@ class Config(BaseModel):
     packages: Dict[str, List[PackageInfo]] = Field(default_factory=dict)
     git: GitConfig = Field(default_factory=lambda: GitConfig())
     apt_repos: Dict[str, "AptRepoConfig"] = Field(default_factory=dict)
+    script_packages: Dict[str, "ScriptPackageDef"] = Field(default_factory=dict)
 
     def get_current_machine_packages(self, profile_id: str) -> List[PackageInfo]:
         """Get packages for current machine."""

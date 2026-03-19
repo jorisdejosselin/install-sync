@@ -1059,10 +1059,17 @@ class ScriptManager(PackageManager):
     """Custom script-based package manager using definitions in GlobalConfig."""
 
     def _get_def(self, package_name: str):
-        """Load GlobalConfig and return ScriptPackageDef for package, or None."""
-        from .config_utils import load_global_config
-        config = load_global_config()
-        return config.custom_packages.get(package_name)
+        """Return ScriptPackageDef for package, or None.
+
+        Checks Config.script_packages (git-synced) first, then falls back to
+        GlobalConfig.custom_packages (local machine only).
+        """
+        from .config_utils import load_config, load_global_config
+        config = load_config()
+        if package_name in config.script_packages:
+            return config.script_packages[package_name]
+        global_config = load_global_config()
+        return global_config.custom_packages.get(package_name)
 
     def _prompt_and_save_def(self, package_name: str, need_install: bool = True):
         """Prompt user for script commands and save to GlobalConfig."""
@@ -1143,9 +1150,11 @@ class ScriptManager(PackageManager):
 
     def list_installed(self) -> List[str]:
         """List all script-managed packages that pass is_installed check."""
-        from .config_utils import load_global_config
-        config = load_global_config()
-        return [name for name in config.custom_packages if self.is_installed(name)]
+        from .config_utils import load_config, load_global_config
+        all_names: set = set()
+        all_names.update(load_config().script_packages.keys())
+        all_names.update(load_global_config().custom_packages.keys())
+        return [name for name in sorted(all_names) if self.is_installed(name)]
 
 
 class PackageManagerFactory:
