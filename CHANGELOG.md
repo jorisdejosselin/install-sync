@@ -1,6 +1,26 @@
 # CHANGELOG
 
 
+## v0.11.0 (2026-03-19)
+
+### Features
+
+* feat: add script subcommand group and fix track early-return bug
+
+- Add `script_packages` field to Config (git-synced via config.json)
+- Add `install-sync script add/list/remove` subcommands for managing
+  script-based package definitions
+- Fix ScriptManager._get_def() to check Config.script_packages first,
+  falling back to GlobalConfig.custom_packages
+- Fix ScriptManager.list_installed() to merge both sources
+- Move load_config/save_config into config_utils.py so package_managers.py
+  can import them without a circular dependency on main.py
+- Remove early-return bug in `track` that prevented updating a package's
+  manager or version when already tracked
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> ([`10eeed1`](https://github.com/jorisdejosselin/install-sync/commit/10eeed135689acf9591d809310f7119a8d206216))
+
+
 ## v0.10.11 (2026-03-17)
 
 ### Bug Fixes
