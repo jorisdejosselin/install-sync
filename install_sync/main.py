@@ -82,6 +82,15 @@ def save_global_config_with_debug(config: GlobalConfig) -> None:
         console.print(f"⚠️  Failed to save global config: {e}")
 
 
+def _apply_git_flags(no_git: bool, yes: bool) -> None:
+    """Override session git options from subcommand flags."""
+    global _session_git_options
+    if no_git:
+        _session_git_options["no_git"] = True
+    if yes:
+        _session_git_options["auto_git"] = True
+
+
 def should_perform_git_operations() -> bool:
     """Determine if git operations should be performed based on config."""
     from rich.prompt import Confirm
@@ -537,14 +546,14 @@ def _bulk_install(
 
 @app.command()
 def install(
-    package: Optional[str] = typer.Argument(
-        None, help="Package name to install (omit to use --all)"
+    packages: Optional[List[str]] = typer.Argument(
+        None, help="Package name(s) to install (omit to use --all)"
     ),
     manager: Optional[str] = typer.Option(
         None,
         "--manager",
         "-m",
-        help="Package manager to use (brew, winget, apt, poetry, snap, pipx, cargo, asdf, script)",
+        help="Package manager to use (brew, winget, apt, poetry, snap, pipx, cargo, asdf, npm, script)",
     ),
     force: bool = typer.Option(
         False, "--force", "-f", help="Force installation even if already installed"
@@ -563,14 +572,17 @@ def install(
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Show full command output for this run"
     ),
+    no_git: bool = typer.Option(False, "--no-git", help="Skip git operations"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Auto-confirm git commit/push"),
 ) -> None:
     """Install a package using the appropriate package manager."""
-    # Validation: ensure either package or --all is provided, not both
-    if all_packages and package:
+    _apply_git_flags(no_git, yes)
+    # Validation: ensure either packages or --all is provided, not both
+    if all_packages and packages:
         console.print("❌ Cannot specify both a package name and --all flag")
         raise typer.Exit(1)
 
-    if not all_packages and not package:
+    if not all_packages and not packages:
         console.print("❌ Must specify either a package name or use --all flag")
         raise typer.Exit(1)
 
@@ -589,11 +601,8 @@ def install(
         _bulk_install(config, machine, from_machine, manager, force, project_path)
         return
 
-    # Single package installation (existing logic)
-    # At this point package is guaranteed to be not None due to validation
-    assert package is not None
-
-    # Get package manager
+    # Resolve package manager once for all packages
+    assert packages is not None
     try:
         if manager:
             if manager == "poetry" and project_path:
@@ -609,65 +618,72 @@ def install(
         console.print(f"❌ {e}")
         raise typer.Exit(1)
 
-    # Check if already installed (both tracked AND actually on the system)
-    if not force and config.is_package_installed(machine.profile_id, package):
-        if pkg_manager.is_installed(package):
-            version = pkg_manager.get_version(package)
-            ver_str = f" ({version})" if version else ""
-            console.print(f"📦 Package [bold]{package}[/bold] is already installed{ver_str}")
-            if verbose:
-                console.print(f"[dim]  manager : {manager}[/dim]")
-                console.print(f"[dim]  verified: found on system via {manager}[/dim]")
-                console.print(f"[dim]  tip     : use --force to reinstall[/dim]")
-            return
-        # Tracked but not present on system — fall through to reinstall
+    failed = []
+    installed = []
+    for package in packages:
+        # Check if already installed (both tracked AND actually on the system)
+        if not force and config.is_package_installed(machine.profile_id, package):
+            if pkg_manager.is_installed(package):
+                version = pkg_manager.get_version(package)
+                ver_str = f" ({version})" if version else ""
+                console.print(f"📦 Package [bold]{package}[/bold] is already installed{ver_str}")
+                if verbose:
+                    console.print(f"[dim]  manager : {manager}[/dim]")
+                    console.print(f"[dim]  verified: found on system via {manager}[/dim]")
+                    console.print(f"[dim]  tip     : use --force to reinstall[/dim]")
+                continue
+            # Tracked but not present on system — fall through to reinstall
 
-    # Run apt repo setup if a definition exists for this package
-    if manager == "apt" and package in config.apt_repos:
-        apt_mgr = PackageManagerFactory.get_manager("apt")
-        if not apt_mgr.setup_repo(package, config.apt_repos[package]):
-            raise typer.Exit(1)
+        # Run apt repo setup if a definition exists for this package
+        if manager == "apt" and package in config.apt_repos:
+            apt_mgr = PackageManagerFactory.get_manager("apt")
+            if not apt_mgr.setup_repo(package, config.apt_repos[package]):
+                failed.append(package)
+                continue
 
-    # Install package
-    console.print(
-        f"{SYMBOLS['install']} Installing [bold]{package}[/bold] using {manager}..."
-    )
-
-    if pkg_manager.install(package):
-        # Get version info
-        version = pkg_manager.get_version(package)
-
-        # Record installation
-        package_info = PackageInfo(
-            name=package, package_manager=manager, version=version
+        # Install package
+        console.print(
+            f"{SYMBOLS['install']} Installing [bold]{package}[/bold] using {manager}..."
         )
-        changed = config.add_package(machine.profile_id, package_info)
-        if changed:
-            save_config(config)
 
-            # Git operations
-            if should_perform_git_operations():
-                try:
-                    tracking_dir = get_tracking_directory()
-                    debug_print(f"Using tracking directory: {tracking_dir}")
+        if pkg_manager.install(package):
+            version = pkg_manager.get_version(package)
+            package_info = PackageInfo(
+                name=package, package_manager=manager, version=version
+            )
+            if config.add_package(machine.profile_id, package_info):
+                installed.append(package)
+        else:
+            failed.append(package)
 
-                    git_manager = GitManager(
-                        tracking_dir, config.git, debug_mode=is_debug_mode()
-                    )
-                    if git_manager.is_git_repo():
+    # Save config and do a single git commit for all installed packages
+    if installed:
+        save_config(config)
+        if should_perform_git_operations():
+            try:
+                tracking_dir = get_tracking_directory()
+                git_manager = GitManager(
+                    tracking_dir, config.git, debug_mode=is_debug_mode()
+                )
+                if git_manager.is_git_repo():
+                    if len(installed) == 1:
                         message = config.git.commit_message_template.format(
-                            package=package, machine=machine.machine_name
+                            package=installed[0], machine=machine.machine_name
                         )
-                        git_manager.commit_changes(message)
-                        git_manager.push_changes()
                     else:
-                        console.print(
-                            "ℹ️  Not a git repository. Run 'install-sync repo setup' "
-                            "to enable git tracking."
-                        )
-                except Exception as e:
-                    console.print(f"⚠️  Git operations failed: {e}")
-    else:
+                        pkgs = ", ".join(installed)
+                        message = f"install {pkgs} on {machine.machine_name}"
+                    git_manager.commit_changes(message)
+                    git_manager.push_changes()
+                else:
+                    console.print(
+                        "ℹ️  Not a git repository. Run 'install-sync repo setup' "
+                        "to enable git tracking."
+                    )
+            except Exception as e:
+                console.print(f"⚠️  Git operations failed: {e}")
+
+    if failed:
         raise typer.Exit(1)
 
 
@@ -683,8 +699,11 @@ def track(
     version: Optional[str] = typer.Option(
         None, "--version", "-v", help="Package version (auto-detected if not provided)"
     ),
+    no_git: bool = typer.Option(False, "--no-git", help="Skip git operations"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Auto-confirm git commit/push"),
 ) -> None:
     """Track an already installed package without installing it."""
+    _apply_git_flags(no_git, yes)
     if package is None:
         console.print(" Usage: install-sync track [OPTIONS] PACKAGE")
         console.print("")
@@ -794,7 +813,7 @@ def uninstall(
         None,
         "--manager",
         "-m",
-        help="Package manager to use (brew, winget, apt, poetry, snap, pipx, cargo, asdf, script)",
+        help="Package manager to use (brew, winget, apt, poetry, snap, pipx, cargo, asdf, npm, script)",
     ),
     force: bool = typer.Option(
         False, "--force", "-f", help="Force uninstallation even if not tracked"
@@ -802,8 +821,11 @@ def uninstall(
     project_path: Optional[str] = typer.Option(
         None, "--project", "-p", help="Project path for poetry manager"
     ),
+    no_git: bool = typer.Option(False, "--no-git", help="Skip git operations"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Auto-confirm git commit/push"),
 ) -> None:
     """Uninstall a package using the appropriate package manager."""
+    _apply_git_flags(no_git, yes)
     config = load_config()
     machine = MachineProfile.create_current()
 
@@ -907,7 +929,7 @@ def upgrade(
         None,
         "--manager",
         "-m",
-        help="Package manager to use (brew, winget, apt, poetry, snap, pipx, cargo, asdf, script)",
+        help="Package manager to use (brew, winget, apt, poetry, snap, pipx, cargo, asdf, npm, script)",
     ),
     project_path: Optional[str] = typer.Option(
         None, "--project", "-p", help="Project path for poetry manager"

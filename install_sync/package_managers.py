@@ -1,5 +1,6 @@
 """Package manager implementations."""
 
+import os
 import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -1157,6 +1158,85 @@ class ScriptManager(PackageManager):
         return [name for name in sorted(all_names) if self.is_installed(name)]
 
 
+class NpmManager(PackageManager):
+    """npm global package manager."""
+
+    _NPM_GLOBAL_DIR = Path.home() / ".npm-global"
+
+    def _ensure_user_prefix(self) -> None:
+        """Ensure npm is configured to install globally into ~/.npm-global (no sudo needed)."""
+        prefix_result = _run(["npm", "config", "get", "prefix"])
+        current_prefix = prefix_result.stdout.strip()
+        # If prefix is under /usr or /usr/local, it requires root — reconfigure it
+        if current_prefix.startswith("/usr"):
+            self._NPM_GLOBAL_DIR.mkdir(parents=True, exist_ok=True)
+            _run(["npm", "config", "set", "prefix", str(self._NPM_GLOBAL_DIR)])
+            # Ensure ~/.npm-global/bin is on PATH for this process
+            bin_dir = str(self._NPM_GLOBAL_DIR / "bin")
+            if bin_dir not in os.environ.get("PATH", ""):
+                os.environ["PATH"] = bin_dir + ":" + os.environ.get("PATH", "")
+            console.print(
+                f"[dim]  ℹ npm prefix set to {self._NPM_GLOBAL_DIR} "
+                f"(add {bin_dir} to your PATH if not already)[/dim]"
+            )
+
+    def install(self, package_name: str) -> bool:
+        self._ensure_user_prefix()
+        result = _run(["npm", "install", "-g", package_name])
+        if result.returncode == 0:
+            console.print(f"{SYMBOLS['success']} Successfully installed {package_name}")
+            _logger.log_success(package_name, "npm", result.stdout, result.stderr)
+            return True
+        console.print(f"{SYMBOLS['error']} Failed to install {package_name}")
+        _logger.log_failure(package_name, "npm", result.stderr or "", result.stdout or "")
+        return False
+
+    def uninstall(self, package_name: str) -> bool:
+        result = _run(["npm", "uninstall", "-g", package_name])
+        if result.returncode == 0:
+            console.print(f"✅ Successfully uninstalled {package_name}")
+            return True
+        console.print(f"❌ Failed to uninstall {package_name}")
+        _logger.log_failure(package_name, "npm", result.stderr or "", result.stdout or "")
+        return False
+
+    def upgrade(self, package_name: str) -> bool:
+        result = _run(["npm", "update", "-g", package_name])
+        return result.returncode == 0
+
+    def upgrade_all(self) -> bool:
+        result = _run(["npm", "update", "-g"])
+        return result.returncode == 0
+
+    def is_installed(self, package_name: str) -> bool:
+        result = _run(["npm", "list", "-g", "--depth=0", package_name])
+        return result.returncode == 0
+
+    def get_version(self, package_name: str) -> Optional[str]:
+        result = _run(["npm", "list", "-g", "--depth=0", "--json"])
+        if result.returncode != 0:
+            return None
+        import json as _json
+        try:
+            data = _json.loads(result.stdout)
+            deps = data.get("dependencies", {})
+            pkg = deps.get(package_name, {})
+            return pkg.get("version")
+        except Exception:
+            return None
+
+    def list_installed(self) -> List[str]:
+        result = _run(["npm", "list", "-g", "--depth=0", "--json"])
+        if result.returncode != 0:
+            return []
+        import json as _json
+        try:
+            data = _json.loads(result.stdout)
+            return list(data.get("dependencies", {}).keys())
+        except Exception:
+            return []
+
+
 class PackageManagerFactory:
     """Factory for creating package managers."""
 
@@ -1182,6 +1262,8 @@ class PackageManagerFactory:
                 cls._managers[manager_type] = CargoManager()
             elif manager_type == "asdf":
                 cls._managers[manager_type] = AsdfManager()
+            elif manager_type == "npm":
+                cls._managers[manager_type] = NpmManager()
             elif manager_type == "script":
                 cls._managers[manager_type] = ScriptManager()
             else:
