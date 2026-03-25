@@ -804,14 +804,14 @@ files = [
 
 [[package]]
 name = "nuitka"
-version = "2.7.11"
+version = "2.8.10"
 description = "Python compiler with full language support and CPython compatibility"
 optional = false
 python-versions = "*"
 groups = ["build"]
 markers = "python_version >= \"3.13\""
 files = [
-    {file = "Nuitka-2.7.11.tar.gz", hash = "sha256:8009d7acb7d0467c96ecd02e4105fc488e0c12e5296cb49b0a9197de883c8123"},
+    {file = "nuitka-2.8.10.tar.gz", hash = "sha256:03e4d0756d8a11cb2627da3a2d9b518c802d031bf4f2c629e0a7b8c773497452"},
 ]
 
 [package.dependencies]
@@ -819,7 +819,11 @@ ordered-set = ">=4.1.0"
 zstandard = ">=0.15"
 
 [package.extras]
+all = ["imageio", "setuptools (>=42)", "toml", "zstandard (>=0.15)"]
+app = ["zstandard (>=0.15)"]
 build-wheel = ["setuptools (>=42)", "toml", "wheel"]
+icon-conversion = ["imageio"]
+onefile = ["zstandard (>=0.15)"]
 
 [[package]]
 name = "ordered-set"
