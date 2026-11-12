@@ -19,6 +19,7 @@ func TestBrew(t *testing.T) {
 		"brew info --json=v2 iterm2":         {Stdout: `{"formulae":[],"casks":[{"token":"iterm2"}]}`},
 		"brew info --json=v2 jq":             {Stdout: `{"formulae":[{"name":"jq"}],"casks":[]}`},
 		"brew info --json=v2 nope":           {Code: 1},
+		"brew info --json=v2 kubectl":        {Stdout: `{"formulae":[{"name":"kubernetes-cli","full_name":"kubernetes-cli"}],"casks":[]}`},
 	}}
 	b := New(r, "darwin")[manifest.Brew]
 	if !b.Usable() || !b.Implied() {
@@ -45,6 +46,10 @@ func TestBrew(t *testing.T) {
 	e, found, _ = b.Probe(ctx, manifest.Entry{Name: "jq"})
 	if !found || e.Cask {
 		t.Errorf("probe jq = %+v %v", e, found)
+	}
+	e, found, _ = b.Probe(ctx, manifest.Entry{Name: "kubectl"})
+	if !found || e.Name != "kubernetes-cli" {
+		t.Errorf("alias not resolved: %+v %v", e, found)
 	}
 	if _, found, _ = b.Probe(ctx, manifest.Entry{Name: "nope"}); found {
 		t.Error("nope should not be found")

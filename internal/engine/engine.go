@@ -178,6 +178,13 @@ func (e *Engine) State(ctx context.Context, pkg string) PackageState {
 				continue
 			}
 			entry = probed
+			// The probe may resolve an alias to a name that is installed.
+			if entry.Name != c.Entry.Name {
+				if inst, _ := c.Manager.IsInstalled(ctx, entry, e.installedSet(ctx, c.Manager)); inst {
+					st.Status, st.Manager, st.Name, st.entry, st.manager = StatusOK, c.Manager.Name(), entry.Name, entry, c.Manager
+					return st
+				}
+			}
 		}
 		st.Status, st.Manager, st.Name, st.entry, st.manager = StatusMissing, c.Manager.Name(), entry.Name, entry, c.Manager
 		return st

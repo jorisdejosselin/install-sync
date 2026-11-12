@@ -49,22 +49,38 @@ func (b *brew) Manual(ctx context.Context) ([]string, bool, error) {
 	return append(lines(f.Stdout), lines(c.Stdout)...), true, nil
 }
 
+// Probe finds the package in brew and resolves aliases to the real name
+// (`kubectl` is the formula `kubernetes-cli`), so installed checks match.
 func (b *brew) Probe(ctx context.Context, e manifest.Entry) (manifest.Entry, bool, error) {
 	res, err := b.r.Capture(ctx, "brew", "info", "--json=v2", e.Name)
 	if err != nil || !res.OK() {
 		return e, false, err
 	}
 	var info struct {
-		Formulae []json.RawMessage `json:"formulae"`
-		Casks    []json.RawMessage `json:"casks"`
+		Formulae []struct {
+			FullName string `json:"full_name"`
+		} `json:"formulae"`
+		Casks []struct {
+			FullToken string `json:"full_token"`
+		} `json:"casks"`
 	}
 	if err := json.Unmarshal([]byte(res.Stdout), &info); err != nil {
 		return e, false, fmt.Errorf("brew info %s: %w", e.Name, err)
 	}
-	if len(info.Formulae) == 0 && len(info.Casks) > 0 {
+	switch {
+	case len(info.Formulae) > 0:
+		if n := info.Formulae[0].FullName; n != "" {
+			e.Name = n
+		}
+		return e, true, nil
+	case len(info.Casks) > 0:
 		e.Cask = true
+		if n := info.Casks[0].FullToken; n != "" {
+			e.Name = n
+		}
+		return e, true, nil
 	}
-	return e, len(info.Formulae)+len(info.Casks) > 0, nil
+	return e, false, nil
 }
 
 func (b *brew) IsInstalled(_ context.Context, e manifest.Entry, s Set) (bool, error) {
