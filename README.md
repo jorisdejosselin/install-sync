@@ -125,7 +125,7 @@ Override its location with `INSTALL_SYNC_CONFIG`.
 
 | Command | What it does |
 |---|---|
-| `init --repo <url> --profile <name>` | Clone the manifest and set this machine's profile. `--manifest <dir>` uses an existing folder; `--create [--include a,b]` makes a new profile. |
+| `init --repo <url> --profile <name>` | Clone the manifest and set this machine's profile. Safe to rerun; a config already written by chezmoi for the same profile is kept. `--manifest <dir>` uses an existing folder; `--create [--include a,b]` makes a new profile. |
 | `apply [--yes] [--dry-run]` | Install everything missing. Never uninstalls. |
 | `diff [--json]` | List missing / untracked / unavailable packages. |
 | `add <pkg>... [--to <profile>] [--manager m --name n] [--cask] [--classic] [--no-install]` | Install here, add to a profile (default: this machine's), and commit and push. |
