@@ -25,6 +25,7 @@ type fakeMgr struct {
 	noManual  bool
 	log       *[]string
 	failOn    string
+	aliases   map[string]string
 }
 
 func (f *fakeMgr) Name() string        { return f.name }
@@ -45,6 +46,10 @@ func (f *fakeMgr) Manual(context.Context) ([]string, bool, error) {
 	return f.manual, true, nil
 }
 func (f *fakeMgr) Probe(_ context.Context, e manifest.Entry) (manifest.Entry, bool, error) {
+	if alias, ok := f.aliases[e.Name]; ok {
+		e.Name = alias
+		return e, true, nil
+	}
 	return e, f.repo[e.Name], nil
 }
 func (f *fakeMgr) IsInstalled(_ context.Context, e manifest.Entry, s pm.Set) (bool, error) {
@@ -257,5 +262,15 @@ func TestAdoptName(t *testing.T) {
 		if pkg != c.pkg || gotEntry != c.entry {
 			t.Errorf("AdoptName(%s, %s) = %s %q, want %s %q", c.mgr, c.native, pkg, gotEntry, c.pkg, c.entry)
 		}
+	}
+}
+
+func TestAliasResolvedToInstalled(t *testing.T) {
+	e, mgrs, _ := setup(t, "work")
+	mgrs["snap"].usable = false
+	mgrs["apt"].aliases = map[string]string{"kubectl": "kubernetes-cli"}
+	mgrs["apt"].installed["kubernetes-cli"] = true
+	if st := e.State(ctx, "kubectl"); st.Status != StatusOK || st.Name != "kubernetes-cli" {
+		t.Errorf("kubectl via alias = %+v", st)
 	}
 }
