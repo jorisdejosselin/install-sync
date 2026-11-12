@@ -2,6 +2,7 @@
 description: Personal MacBook
 include:
   - base-cli
+  - k8s
 packages:
   - iterm2
   - signal
