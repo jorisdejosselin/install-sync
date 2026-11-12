@@ -76,3 +76,37 @@ func TestConvertRejectsGarbage(t *testing.T) {
 		t.Error("expected error")
 	}
 }
+
+func TestConvertV011(t *testing.T) {
+	data := `{
+  "machines": {"x": {"machine_name": "wsl", "os_type": "linux"}},
+  "packages": {"x": [
+    {"name": "terraform", "package_manager": "apt"},
+    {"name": "k9s", "package_manager": "script"}
+  ]},
+  "apt_repos": {"terraform": {"gpg_key_url": "https://apt.releases.hashicorp.com/gpg", "repo_url": "https://apt.releases.hashicorp.com"}},
+  "script_packages": {"k9s": {"install_cmd": "install-k9s", "check_cmd": "k9s version"}}
+}`
+	res, err := Convert([]byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := res.Catalog["terraform"].Entries[manifest.Apt].Repo
+	if repo == nil || repo.Source != "deb [arch={arch} signed-by={keyring}] https://apt.releases.hashicorp.com {codename} main" {
+		t.Errorf("repo = %+v", repo)
+	}
+	sc := res.Catalog["k9s"].Entries[manifest.Script]
+	if sc.Install != "install-k9s" || sc.Check != "k9s version" {
+		t.Errorf("script = %+v", sc)
+	}
+	if strings.Contains(strings.Join(res.Notes, "\n"), "k9s was a script install") {
+		t.Errorf("stale TODO note kept: %v", res.Notes)
+	}
+	dir := t.TempDir()
+	if err := Write(dir, res); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manifest.Load(dir); err != nil {
+		t.Fatal(err)
+	}
+}

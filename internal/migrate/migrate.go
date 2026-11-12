@@ -24,6 +24,19 @@ type v0Config struct {
 		Name           string `json:"name"`
 		PackageManager string `json:"package_manager"`
 	} `json:"packages"`
+	// v0.11 additions.
+	AptRepos map[string]struct {
+		GPGKeyURL    string `json:"gpg_key_url"`
+		RepoURL      string `json:"repo_url"`
+		Distribution string `json:"distribution"`
+		Components   string `json:"components"`
+		Architecture string `json:"architecture"`
+	} `json:"apt_repos"`
+	ScriptPackages map[string]struct {
+		Install   string `json:"install_cmd"`
+		Uninstall string `json:"uninstall_cmd"`
+		Check     string `json:"check_cmd"`
+	} `json:"script_packages"`
 }
 
 // Result describes what Run produced.
@@ -82,7 +95,64 @@ func Convert(data []byte) (*Result, error) {
 			}
 		}
 	}
+	applyV011(&old, res)
 	return res, nil
+}
+
+// applyV011 carries over apt repos and script definitions stored by v0.11.
+func applyV011(old *v0Config, res *Result) {
+	setEntry := func(pkg, mgr string, e manifest.Entry) {
+		def := res.Catalog[pkg]
+		if def.Entries == nil {
+			def.Entries = map[string]manifest.Entry{}
+		}
+		def.Entries[mgr] = e
+		res.Catalog[pkg] = def
+	}
+	for name, r := range old.AptRepos {
+		pkg := slug(name)
+		dist := r.Distribution
+		if dist == "" {
+			dist = "{codename}"
+		}
+		comps := r.Components
+		if comps == "" {
+			comps = "main"
+		}
+		arch := r.Architecture
+		if arch == "" {
+			arch = "{arch}"
+		}
+		e := res.Catalog[pkg].Entries[manifest.Apt]
+		if pkg != name {
+			e.Name = name
+		}
+		e.Repo = &manifest.AptRepo{
+			Key:    r.GPGKeyURL,
+			Source: fmt.Sprintf("deb [arch=%s signed-by={keyring}] %s %s %s", arch, r.RepoURL, dist, comps),
+		}
+		setEntry(pkg, manifest.Apt, e)
+	}
+	for name, sp := range old.ScriptPackages {
+		pkg := slug(name)
+		e := manifest.Entry{Install: sp.Install, Check: sp.Check, Uninstall: sp.Uninstall}
+		if e.Install == "" {
+			e.Install = fmt.Sprintf("echo 'TODO: write the install script for %s' >&2; exit 1", pkg)
+		}
+		if e.Check == "" {
+			e.Check = "command -v " + pkg
+			res.Notes = append(res.Notes, fmt.Sprintf("%s had no check command; using `command -v %s`", pkg, pkg))
+		}
+		setEntry(pkg, manifest.Script, e)
+		// The placeholder note for this script install no longer applies.
+		kept := res.Notes[:0]
+		for _, n := range res.Notes {
+			if !strings.HasPrefix(n, pkg+" was a script install") {
+				kept = append(kept, n)
+			}
+		}
+		res.Notes = kept
+	}
 }
 
 func convertOne(name, mgr string) (string, *manifest.Entry, string) {
