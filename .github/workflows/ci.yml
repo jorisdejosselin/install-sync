@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: gofmt
+        if: runner.os == 'Linux'
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Test (race)
+        if: runner.os != 'Windows'
+        run: go test -race -count=1 ./...
+
+      - name: Test
+        if: runner.os == 'Windows'
+        run: go test -count=1 ./...
+
+      - name: Smoke test
+        shell: bash
+        run: |
+          go build -o bin/install-sync ./cmd/install-sync
+          ./bin/install-sync --version
+          ./bin/install-sync --help
+          ./bin/install-sync validate examples/manifest
+
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: goreleaser/goreleaser-action@v7.3.0
+        with:
+          version: v2.20.2
+          args: check
+      - uses: goreleaser/goreleaser-action@v7.3.0
+        with:
+          version: v2.20.2
+          args: release --snapshot --clean
+      - name: Run linux binary from the snapshot
+        run: ./dist/install-sync_linux_amd64_v1/install-sync --version

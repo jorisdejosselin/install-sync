@@ -1,0 +1,3 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/schema/profile.schema.json
+description: Windows host of the work laptop (fill with `install-sync adopt` there)
+packages: []
