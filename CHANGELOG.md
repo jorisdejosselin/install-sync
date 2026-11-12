@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## [1.0.1](https://github.com/jorisdejosselin/install-sync/compare/v1.0.0...v1.0.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* **init:** reuse a machine config that names the same profile ([e693f63](https://github.com/jorisdejosselin/install-sync/commit/e693f636499069ffa75921e0a02fb5689940cbfd))
+* **init:** reuse a machine config that names the same profile ([4c64954](https://github.com/jorisdejosselin/install-sync/commit/4c64954f9034e1ad2259c4634736428130db3859))
+
 ## [1.0.0](https://github.com/jorisdejosselin/install-sync/compare/v0.11.0...v1.0.0) (2026-11-12)
 
 
