@@ -1,6 +1,18 @@
 # CHANGELOG
 
 
+## [1.0.0](https://github.com/jorisdejosselin/install-sync/compare/v0.11.0...v1.0.0) (2026-11-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* the v0 config.json and all v0 commands are gone. Convert old data with `install-sync migrate`. The Python source is at tag v0-python.
+
+### Features
+
+* **migrate:** carry over v0.11 apt repos and script packages ([c8a1d72](https://github.com/jorisdejosselin/install-sync/commit/c8a1d7251eac4030ea4d46128c1abc795de0e156))
+* rewrite install-sync in Go around a desired-state manifest ([67904f8](https://github.com/jorisdejosselin/install-sync/commit/67904f877ad2b9a487e082d728649607753a538f))
+
 ## v0.11.0 (2026-03-19)
 
 ### Features
