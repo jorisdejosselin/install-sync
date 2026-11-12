@@ -1,387 +1,176 @@
 # install-sync
 
-Cross-platform software installation manager with git tracking for personal use across multiple machines.
+Keep the software on each of your machines in line with a **git-tracked desired-state manifest**.
+Set up a fresh laptop with one command, see what drifted, and let AI agents install tools
+without having to know anything about git.
 
-[![CI/CD Pipeline](https://github.com/jorisdejosselin/install-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/jorisdejosselin/install-sync/actions/workflows/ci.yml)
-[![Release](https://github.com/jorisdejosselin/install-sync/actions/workflows/release.yml/badge.svg)](https://github.com/jorisdejosselin/install-sync/actions/workflows/release.yml)
-[![PyPI version](https://badge.fury.io/py/install-sync.svg)](https://badge.fury.io/py/install-sync)
-
-## Features
-
-- **Cross-platform support**: Works on macOS, Windows, and Linux
-- **Multiple package managers**: Supports brew, winget, apt, and Poetry
-- **Git integration**: Automatically commits and pushes installation records
-- **Machine identification**: Tracks which software is installed on which machine
-- **Remote repository creation**: Easy setup with GitHub or GitLab
-- **Rich CLI**: Beautiful command-line interface with Typer and Rich
-- **Binary distribution**: Single executable files for easy deployment
-
-## Installation
-
-### Quick Install Script
-Once the first release is published, you can install using these one-liners:
-
-```bash
-# Linux/macOS
-curl -sSL https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/install.sh | bash
-
-# Windows (PowerShell)
-iwr -useb https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/install.ps1 | iex
+```sh
+curl -fsSL https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/install.sh | sh
+install-sync init --repo git@gitlab.com:me/my-software.git --profile work
+install-sync apply
 ```
 
-### Download Binary
-Pre-built binaries will be available from the releases page:
+- **Profiles by purpose**: `work`, `personal`, `gaming`, which can `include` shared sets like `base-cli`.
+  A new laptop adopts an existing profile; machines are never recorded in the manifest.
+- **Packages, not package-manager names**: profiles list `jq`, and the catalog says how to get it with
+  brew, apt, winget, snap, npm or a script.
+- **Git is invisible**: every command pulls first, and every change is committed and pushed.
+- **Apply never uninstalls**. `diff` shows what is *missing*, *untracked* or *unavailable*.
 
-- **Linux (x64)**: `install-sync-linux-amd64`
-- **Windows (x64)**: `install-sync-windows-amd64.exe`
-- **macOS (Intel x64)**: `install-sync-darwin-amd64`
-- **macOS (Apple Silicon ARM64)**: `install-sync-darwin-arm64`
+See [CONTEXT.md](CONTEXT.md) for the vocabulary and [docs/adr](docs/adr) for the design decisions.
 
-Make the binary executable and place it in your PATH.
+## Install
 
-### From Source
-```bash
-git clone https://github.com/jorisdejosselin/install-sync.git
-cd install-sync
-poetry install
-poetry run install-sync --help
-```
+| OS | Command |
+|---|---|
+| macOS / Linux / WSL | `curl -fsSL https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/install.sh \| sh` |
+| Windows | `irm https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/install.ps1 \| iex` |
 
-### Using Poetry Environment
-If you're developing or want to avoid typing `poetry run` before every command:
+Both install a single static binary to `~/.local/bin` (checksum-verified). Pin a version with
+`INSTALL_SYNC_VERSION=v1.0.0`. From source: `go install github.com/jorisdejosselin/install-sync/cmd/install-sync@latest`.
 
-**Option 1: Using poetry env activate (Poetry 2.0+)**
-```bash
-# Get the activation command and run it
-$(poetry env activate)
+## The manifest
 
-# Now you can run commands directly
-install-sync --help
-install-sync info
-install-sync install git
-
-# Deactivate when done
-deactivate
-```
-
-**Option 2: Manual activation**
-```bash
-# Get the virtual environment path
-poetry env info --path
-
-# Activate manually (Linux/macOS)
-source $(poetry env info --path)/bin/activate
-
-# Activate manually (Windows)
-$(poetry env info --path)\Scripts\activate
-
-# Deactivate when done
-deactivate
-```
-
-**Option 3: Poetry shell (if you have the shell plugin)**
-```bash
-# Install shell plugin first (one-time setup)
-poetry self add poetry-plugin-shell
-
-# Then use shell command
-poetry shell
-```
-
-## Personal Access Token Setup
-
-Before using `install-sync repo setup`, you'll need to create a Personal Access Token (PAT) for your chosen platform:
-
-### GitHub Token Setup
-
-1. **Go to GitHub Settings**: https://github.com/settings/tokens
-2. **Click "Generate new token"** → **"Generate new token (classic)"**
-3. **Set expiration**: Choose based on your preference (30 days, 90 days, or custom)
-4. **Select scopes**: Check **`repo`** (Full control of private repositories)
-   - This includes: `repo:status`, `repo_deployment`, `public_repo`, `repo:invite`, `security_events`
-5. **Generate and copy the token** (you won't see it again!)
-
-### GitLab Token Setup
-
-1. **Go to GitLab Profile Settings**: https://gitlab.com/-/profile/personal_access_tokens
-2. **Click "Add new token"**
-3. **Set expiration date**: Choose based on your preference
-4. **Select scopes**: Check **`api`** (Complete read/write access to the API)
-   - This allows creating repositories and managing project settings
-5. **Create and copy the token** (you won't see it again!)
-
-### Security Notes
-
-- 🔒 **Tokens are only used once** during repository creation and are **not stored** by install-sync
-- 🔒 Use **private repositories** (default) to keep your package data secure
-- 🔒 Set **reasonable expiration dates** and regenerate tokens periodically
-- 🔒 **Never share your tokens** or commit them to code
-
-### Minimal Permissions Alternative
-
-If you prefer more restrictive permissions:
-
-**GitHub**: Use **`public_repo`** scope instead of `repo` if you only want public repositories
-
-**GitLab**: You can use **`read_api`** + **`write_repository`** instead of full `api` access, but repository creation requires broader permissions
-
-📖 **For detailed step-by-step instructions, see [TOKEN_SETUP.md](TOKEN_SETUP.md)**
-
-### Handling Existing Repositories
-
-If you run `install-sync repo setup` and a repository with the same name already exists, you'll be given three options:
-
-1. **Rename** (default): Create a new repository with a different name (e.g., `my-software-packages-v2`)
-2. **Delete**: Permanently delete the existing repository and create a new one
-3. **Cancel**: Abort the setup process
-
-**⚠️ Deletion Warning**: Choosing to delete will permanently remove all data from the existing repository. This action cannot be undone!
-
-## Quick Start
-
-1. **Set up repository**:
-   ```bash
-   install-sync repo setup
-   ```
-
-2. **Install packages**:
-   ```bash
-   install-sync install git
-   install-sync install python3
-   ```
-
-3. **List packages**:
-   ```bash
-   install-sync list
-   ```
-
-4. **Show machine info**:
-   ```bash
-   install-sync info
-   ```
-
-## Usage
-
-### Repository Management
-```bash
-# Interactive setup - creates remote repo and dedicated tracking directory
-# Default repository name: "my-software-packages"
-# Default tracking directory: "~/package-tracking"
-# Automatically creates .gitignore and README.md
-install-sync repo setup
-
-# Fix git configuration if setup hangs or fails
-install-sync repo fix
-
-# Show repository status and tracking directory
-install-sync repo status
-
-# Show commit history
-install-sync repo history --limit 5
-
-# Delete remote repository (WARNING: Destructive!)
-install-sync repo delete
-```
-
-### Package Management
-```bash
-# Install with default package manager
-install-sync install git
-
-# Install with specific package manager
-install-sync install --manager brew python3
-install-sync install --manager poetry requests
-
-# Install Poetry package in specific project
-install-sync install --manager poetry --project /path/to/project fastapi
-
-# Force reinstall
-install-sync install --force nodejs
-
-# List packages for current machine
-install-sync list
-
-# List packages for all machines
-install-sync list --all
-
-# Sync with remote repository
-install-sync sync
-```
-
-### Machine Information
-```bash
-# Show detailed machine and configuration info
-install-sync info
-```
-
-## Configuration
-
-The system creates several files:
-
-**Local files (not committed to git):**
-- `config.json` - Package tracking data and machine profiles
-- `repo-config.json` - Repository configuration (created during setup)
-
-**Repository files (committed to git):**
-- `.gitignore` - Excludes sensitive config files from version control
-- `README.md` - Documentation for your package repository
-
-### Directory Structure
-
-install-sync creates a **dedicated tracking directory** (default: `~/package-tracking/`) that contains:
+A manifest is a folder in a git repo (its own repo, or a folder inside another one):
 
 ```
-~/package-tracking/
-├── .git/              # Git repository
-├── .gitignore         # Excludes local config files
-├── README.md          # Repository documentation
-├── config.json        # Package tracking data (synced)
-└── repo-config.json   # Local repository settings (excluded)
+packages.yaml          # catalog: how to install each package
+profiles/
+  base-cli.yaml
+  k8s.yaml
+  work.yaml
+  personal.yaml
 ```
 
-**Key Points:**
-- 📁 **Separate from development projects** - No source code mixed with data
-- 🔄 **Syncs across machines** - Each machine updates the same data repository
-- 🔒 **Local configs excluded** - Only package data is shared via git
+A **profile** lists packages and the profiles it includes:
 
-The `config.json` tracks:
-- Machine profiles (OS, architecture, hostname)
-- Installed packages per machine with versions and timestamps
-- Git settings (auto-commit, auto-push)
-
-Example `config.json`:
-```json
-{
-  "machines": {
-    "a1b2c3d4": {
-      "profile_id": "a1b2c3d4",
-      "machine_name": "MacBook-Pro",
-      "os_type": "darwin",
-      "architecture": "arm64"
-    }
-  },
-  "packages": {
-    "a1b2c3d4": [
-      {
-        "name": "git",
-        "package_manager": "brew",
-        "version": "2.42.0",
-        "installed_at": "2025-01-15T10:30:00"
-      }
-    ]
-  },
-  "git": {
-    "auto_commit": true,
-    "auto_push": true,
-    "commit_message_template": "Install {package} on {machine}"
-  }
-}
+```yaml
+# profiles/work.yaml
+description: Work dev environment (WSL on the client laptop)
+include: [base-cli, k8s]
+packages:
+  - azure-cli
+  - terraform
+  - md-to-pdf
 ```
 
-## Package Manager Support
+The **catalog** holds a definition only where a package needs one. A package without a definition
+(or a package manager without an entry) is tried under the package's own name with brew, apt, snap
+or winget: the *implied definition*.
 
-| OS | Package Manager | Command | Status |
-|---|---|---|---|
-| macOS | Homebrew | `brew` | ✅ Supported |
-| Windows | Windows Package Manager | `winget` | ✅ Supported |
-| Linux | APT | `apt` | ✅ Supported |
-| Any | Poetry | `poetry` | ✅ Supported |
+```yaml
+# packages.yaml
+packages:
+  jq:
+    winget: jqlang.jq                  # brew and apt find "jq" by name
+  iterm2:
+    brew: {cask: true}
+  terraform:
+    brew: hashicorp/tap/terraform
+    apt:
+      repo:                            # added once, before installing
+        key: https://apt.releases.hashicorp.com/gpg
+        source: deb [arch={arch} signed-by={keyring}] https://apt.releases.hashicorp.com {codename} main
+    winget: Hashicorp.Terraform
+  kubectl:
+    snap: {classic: true}
+    winget: Kubernetes.kubectl
+  md-to-pdf:
+    npm: md-to-pdf
+    requires:                          # installed first, where that manager exists
+      apt: [libnss3, libgbm1]
+  k9s:
+    script:                            # last resort; shown and confirmed before it runs
+      install: |
+        curl -fsSLo /tmp/k9s.deb https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb
+        sudo apt-get install -y /tmp/k9s.deb
+      check: command -v k9s            # required: exits 0 when installed
+```
+
+A full, real example lives in [examples/manifest](examples/manifest). JSON Schemas for editor
+validation are in [schema/](schema); add a `# yaml-language-server: $schema=…` line at the top of a file.
+
+> Write multi-line scripts as literal blocks (`|`). install-sync rewrites `packages.yaml` when it adds
+> definitions; comments survive, but folded (`>`) blocks are joined into one line.
+
+### Which package manager is used
+
+Each machine has a **manager order**, by default:
+
+| OS | Order |
+|---|---|
+| macOS | brew |
+| Linux | apt, snap, script |
+| Windows | winget |
+
+npm is always tried last. For each package, the first package manager in the order that has an
+entry (or finds it by name) wins. If the package is already installed with any of them, it counts as ok.
+A package that nothing on this machine can install is *unavailable*: reported, never an error.
+
+## The machine config
+
+`~/.config/install-sync/config.yaml` is machine-local and never tracked. `init` writes it, or chezmoi templates it:
+
+```yaml
+profile: work
+manifest: ~/.local/share/install-sync/manifest
+managers: [apt, script]   # optional: override the manager order (e.g. no snap)
+git:
+  push: true              # optional: default true
+```
+
+Override its location with `INSTALL_SYNC_CONFIG`.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `init --repo <url> --profile <name>` | Clone the manifest and set this machine's profile. `--manifest <dir>` uses an existing folder; `--create [--include a,b]` makes a new profile. |
+| `apply [--yes] [--dry-run]` | Install everything missing. Never uninstalls. |
+| `diff [--json]` | List missing / untracked / unavailable packages. |
+| `add <pkg>... [--to <profile>] [--manager m --name n] [--cask] [--classic] [--no-install]` | Install here, add to a profile (default: this machine's), and commit and push. |
+| `remove <pkg>... [--from <profile>] [--keep]` | Remove from the profile that lists it and uninstall here. Packages from included profiles need `--from`. Other machines are not touched. |
+| `adopt [<name>... \| --all] [--to <profile>]` | Move untracked packages into a profile without reinstalling them. |
+| `upgrade [<pkg>...]` | Upgrade installed profile packages to the newest version. |
+| `status [--json]` | Profile, manifest path, package managers, git state. |
+| `profiles [--json]` | Profiles, includes, package counts. |
+| `validate [<dir>]` | Check a manifest (useful in the manifest repo's CI). |
+| `migrate <config.json> --out <dir>` | Convert a v0 install log into a manifest. |
+
+Global flags: `--offline` (no pull/push), `--no-push` (commit only).
+
+### For scripts and AI agents
+
+- Exit codes: `0` ok · `1` error · `2` drift found (`diff`) · `3` needs confirmation (a script install without `--yes`).
+- `--json` on `diff`, `status` and `profiles`. Progress goes to stderr, results to stdout.
+- No prompts without a terminal: script installs exit `3` instead of waiting for input.
+- To install a tool, run `install-sync add <tool>`. If it is not found by name, the error says
+  how to record a definition, e.g. `install-sync add jq --manager winget --name jqlang.jq`.
+
+## Migrating from v0 (the Python version)
+
+v0 kept a per-machine install log in `config.json`, keyed by a hash of the hostname. To move to v1:
+
+```sh
+install-sync migrate ~/package-tracking/config.json --out ./my-software
+# reorganise ./my-software/profiles by purpose, fill in script installs, then:
+cd my-software && git init && git add -A && git commit -m "feat: v1 manifest" && git push
+install-sync init --repo <that repo> --profile <name>      # on each machine
+install-sync adopt                                         # bring in what is untracked
+```
+
+The v0 source is kept at the `v0-python` tag.
 
 ## Development
 
-### Poetry Workflow (Recommended)
-
-For the best development experience, use Poetry's virtual environment:
-
-```bash
-# Clone and setup
-git clone https://github.com/jorisdejosselin/install-sync.git
-cd install-sync
-poetry install
-
-# Activate Poetry environment (Poetry 2.0+)
-$(poetry env activate)
-
-# Now all commands work without 'poetry run' prefix
-install-sync --help
-pytest
-black .
-mypy install_sync/
-
-# When done developing
-deactivate
+```sh
+go test -race ./...
+go build -o install-sync ./cmd/install-sync
 ```
 
-**Benefits of activating the Poetry environment:**
-- No need to prepend `poetry run` to every command
-- Your terminal prompt shows you're in the virtual environment
-- All installed dependencies are directly available
-- Works across different operating systems
-
-**Alternative: Manual activation (works with all Poetry versions)**
-```bash
-# Direct activation (recommended for reliability)
-source $(poetry env info --path)/bin/activate  # Linux/macOS
-# or
-$(poetry env info --path)\Scripts\activate     # Windows
-```
-
-### Setup
-```bash
-git clone https://github.com/jorisdejosselin/install-sync.git
-cd install-sync
-poetry install
-$(poetry env activate)  # Activate virtual environment
-pre-commit install
-```
-
-### Testing
-If you're using Poetry environment (recommended for development):
-```bash
-# After running '$(poetry env activate)'
-pytest
-black --check .
-isort --check-only .
-flake8 .
-mypy install_sync/
-```
-
-Or with `poetry run` prefix:
-```bash
-poetry run pytest
-poetry run black --check .
-poetry run isort --check-only .
-poetry run flake8 .
-poetry run mypy install_sync/
-```
-
-### Building
-```bash
-# Build Python package
-poetry build
-
-# Build binary (if in Poetry environment)
-python build_script.py
-
-# Or with poetry run
-poetry run python build_script.py
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
+Releases: Conventional Commits on `main` → release-please opens a release PR → merging it tags a
+release, and GoReleaser attaches binaries for linux/darwin/windows × amd64/arm64.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## Security Notes
-
-- Personal access tokens are not stored locally
-- Repository can be set to private for security
-- No sensitive data is tracked beyond package names and installation dates
-- All git operations are performed with user credentials
+MIT

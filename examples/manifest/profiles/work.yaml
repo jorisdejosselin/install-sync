@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/schema/profile.schema.json
+description: Work dev environment (WSL on the client laptop)
+include:
+  - base-cli
+  - k8s
+packages:
+  - azure-cli
+  - kubelogin
+  - terraform
+  - docker-ce
+  - golang
+  - nodejs
+  - pandoc
+  - md-to-pdf
+  - dnsutils
+  - zsh
+  - 1password-cli

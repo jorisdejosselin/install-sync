@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/schema/profile.schema.json
+description: Personal MacBook
+include:
+  - base-cli
+  - k8s
+packages:
+  - iterm2
+  - signal
+  - spotify
+  - discord
+  - caffeine
+  - rustdesk
+  - nextcloud
+  - renovate
+  - pipx
+  - 1password-cli

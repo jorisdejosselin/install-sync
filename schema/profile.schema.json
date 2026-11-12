@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/schema/profile.schema.json",
+  "title": "install-sync profile (profiles/<name>.yaml)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["packages"],
+  "properties": {
+    "description": { "type": "string" },
+    "include": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._+-]*$" },
+      "uniqueItems": true
+    },
+    "packages": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._+-]*$" },
+      "uniqueItems": true
+    }
+  }
+}

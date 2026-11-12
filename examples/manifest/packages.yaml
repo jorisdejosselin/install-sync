@@ -1,0 +1,134 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/schema/packages.schema.json
+# Catalog: how to install each package with each package manager.
+# Packages not listed here (or managers not listed for a package) are tried
+# under the package's own name with brew, apt, snap or winget.
+packages:
+  1password-cli:
+    brew: {cask: true}
+    apt:
+      repo:
+        key: https://downloads.1password.com/linux/keys/1password.asc
+        source: deb [arch={arch} signed-by={keyring}] https://downloads.1password.com/linux/debian/{arch} stable main
+    winget: AgileBits.1Password.CLI
+  argocd:
+    winget: argoproj.argocd
+  azure-cli:
+    apt:
+      repo:
+        key: https://packages.microsoft.com/keys/microsoft.asc
+        source: deb [arch={arch} signed-by={keyring}] https://packages.microsoft.com/repos/azure-cli/ {codename} main
+    winget: Microsoft.AzureCLI
+  caffeine:
+    brew: {cask: true}
+  discord:
+    brew: {cask: true}
+    winget: Discord.Discord
+  dnsutils:
+    apt: bind9-dnsutils
+  docker-ce:
+    apt:
+      repo:
+        key: https://download.docker.com/linux/ubuntu/gpg
+        source: deb [arch={arch} signed-by={keyring}] https://download.docker.com/linux/ubuntu {codename} stable
+  gh:
+    apt:
+      repo:
+        key: https://cli.github.com/packages/githubcli-archive-keyring.gpg
+        source: deb [arch={arch} signed-by={keyring}] https://cli.github.com/packages stable main
+    winget: GitHub.cli
+  git:
+    winget: Git.Git
+  golang:
+    brew: go
+    winget: GoLang.Go
+  helm:
+    snap: {classic: true}
+    winget: Helm.Helm
+  iterm2:
+    brew: {cask: true}
+  jq:
+    winget: jqlang.jq
+  k9s:
+    winget: Derailed.k9s
+    script:
+      install: |
+        set -e
+        arch=$(dpkg --print-architecture)
+        curl -fsSLo /tmp/k9s.deb "https://github.com/derailed/k9s/releases/latest/download/k9s_linux_${arch}.deb"
+        sudo apt-get install -y /tmp/k9s.deb
+        rm -f /tmp/k9s.deb
+      check: command -v k9s
+  kubectl:
+    snap: {classic: true}
+    winget: Kubernetes.kubectl
+  kubelogin:
+    brew: Azure/kubelogin/kubelogin
+    winget: Microsoft.Azure.Kubelogin
+    script:
+      install: |
+        set -e
+        arch=$(dpkg --print-architecture)
+        tmp=$(mktemp -d)
+        curl -fsSLo "$tmp/kubelogin.zip" "https://github.com/Azure/kubelogin/releases/latest/download/kubelogin-linux-${arch}.zip"
+        unzip -q "$tmp/kubelogin.zip" -d "$tmp"
+        sudo install -m 0755 "$tmp/bin/linux_${arch}/kubelogin" /usr/local/bin/kubelogin
+        rm -rf "$tmp"
+      check: command -v kubelogin
+      uninstall: sudo rm -f /usr/local/bin/kubelogin
+    requires:
+      apt:
+        - unzip
+  md-to-pdf:
+    npm: md-to-pdf
+    requires:
+      # Libraries headless Chromium (puppeteer) needs on Linux.
+      apt:
+        - libnspr4
+        - libnss3
+        - libatk1.0-0
+        - libatk-bridge2.0-0
+        - libcups2
+        - libdrm2
+        - libxkbcommon0
+        - libxcomposite1
+        - libxdamage1
+        - libxfixes3
+        - libxrandr2
+        - libgbm1
+        - libasound2t64
+  nextcloud:
+    brew: {name: nextcloud, cask: true}
+    winget: Nextcloud.NextcloudDesktop
+  nodejs:
+    brew: node
+    winget: OpenJS.NodeJS
+    requires:
+      # Debian/Ubuntu ship npm as a separate package.
+      apt:
+        - npm
+  p7zip:
+    apt: p7zip-full
+    winget: 7zip.7zip
+  powertoys:
+    winget: Microsoft.PowerToys
+  rustdesk:
+    brew: {cask: true}
+    winget: RustDesk.RustDesk
+  signal:
+    brew: {cask: true}
+    winget: OpenWhisperSystems.Signal
+  spotify:
+    brew: {cask: true}
+    winget: Spotify.Spotify
+  switch:
+    brew: danielfoehrkn/switch/switch
+  tabby:
+    brew: {cask: true}
+    winget: Eugeny.Tabby
+  terraform:
+    brew: hashicorp/tap/terraform
+    apt:
+      repo:
+        key: https://apt.releases.hashicorp.com/gpg
+        source: deb [arch={arch} signed-by={keyring}] https://apt.releases.hashicorp.com {codename} main
+    winget: Hashicorp.Terraform

@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/schema/packages.schema.json",
+  "title": "install-sync catalog (packages.yaml)",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "packages": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z0-9][a-z0-9._+-]*$" },
+      "additionalProperties": { "$ref": "#/$defs/definition" }
+    }
+  },
+  "$defs": {
+    "name": { "type": "string", "minLength": 1 },
+    "simple": {
+      "oneOf": [
+        { "$ref": "#/$defs/name" },
+        { "type": "object", "additionalProperties": false, "properties": { "name": { "$ref": "#/$defs/name" } } }
+      ]
+    },
+    "definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "description": { "type": "string" },
+        "brew": {
+          "oneOf": [
+            { "$ref": "#/$defs/name" },
+            { "type": "object", "additionalProperties": false, "properties": { "name": { "$ref": "#/$defs/name" }, "cask": { "type": "boolean" } } }
+          ]
+        },
+        "apt": {
+          "oneOf": [
+            { "$ref": "#/$defs/name" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": { "$ref": "#/$defs/name" },
+                "repo": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["key", "source"],
+                  "properties": {
+                    "key": { "type": "string", "description": "URL of the signing key (.gpg = binary, otherwise ASCII-armored)" },
+                    "source": { "type": "string", "description": "sources.list line; placeholders {arch}, {codename}, {keyring}" }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "winget": { "$ref": "#/$defs/simple" },
+        "npm": { "$ref": "#/$defs/simple" },
+        "snap": {
+          "oneOf": [
+            { "$ref": "#/$defs/name" },
+            { "type": "object", "additionalProperties": false, "properties": { "name": { "$ref": "#/$defs/name" }, "classic": { "type": "boolean" } } }
+          ]
+        },
+        "script": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["install", "check"],
+          "properties": {
+            "install": { "type": "string" },
+            "check": { "type": "string", "description": "exits 0 when the package is installed" },
+            "uninstall": { "type": "string" },
+            "upgrade": { "type": "string" }
+          }
+        },
+        "requires": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "brew": { "type": "array", "items": { "$ref": "#/$defs/name" }, "minItems": 1 },
+            "apt": { "type": "array", "items": { "$ref": "#/$defs/name" }, "minItems": 1 },
+            "winget": { "type": "array", "items": { "$ref": "#/$defs/name" }, "minItems": 1 },
+            "snap": { "type": "array", "items": { "$ref": "#/$defs/name" }, "minItems": 1 },
+            "npm": { "type": "array", "items": { "$ref": "#/$defs/name" }, "minItems": 1 }
+          }
+        }
+      }
+    }
+  }
+}

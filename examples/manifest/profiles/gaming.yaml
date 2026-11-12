@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/schema/profile.schema.json
+description: Gaming PC (Windows)
+packages:
+  - spotify
+  - signal
+  - tabby
+  - powertoys
+  - p7zip
+  - git
+  - nodejs

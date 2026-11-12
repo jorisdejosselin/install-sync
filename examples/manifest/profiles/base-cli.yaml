@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/schema/profile.schema.json
+description: CLI tools wanted on every machine
+packages:
+  - git
+  - curl
+  - wget
+  - jq
+  - nano
+  - htop
+  - tmux
+  - tree
+  - gh
+  - nmap
+  - whois
+  - p7zip
+  - pre-commit

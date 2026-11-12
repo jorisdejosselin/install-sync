@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jorisdejosselin/install-sync/main/schema/profile.schema.json
+description: Kubernetes tooling
+packages:
+  - kubectl
+  - helm
+  - helm-docs
+  - k9s
+  - argocd
+  - kubectx
+  - switch
