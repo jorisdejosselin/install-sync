@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## [1.0.2](https://github.com/jorisdejosselin/install-sync/compare/v1.0.1...v1.0.2) (2026-11-12)
+
+
+### Bug Fixes
+
+* **brew:** resolve formula aliases when checking what is installed ([74e2485](https://github.com/jorisdejosselin/install-sync/commit/74e2485475533660f678dbe36664107b0e4e3c46))
+* **brew:** resolve formula aliases when checking what is installed ([57065d6](https://github.com/jorisdejosselin/install-sync/commit/57065d6df161c18aae12db4eb8b6918b887fb6e6))
+
 ## [1.0.1](https://github.com/jorisdejosselin/install-sync/compare/v1.0.0...v1.0.1) (2026-11-12)
 
 
