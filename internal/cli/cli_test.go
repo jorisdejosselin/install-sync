@@ -137,8 +137,11 @@ func TestEndToEnd(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("init: %d %s", code, stderr)
 	}
-	if code, _, _ = e.run("darwin", false, "init", "--repo", e.remote, "--profile", "personal"); code == 0 {
-		t.Fatal("second init without --force should fail")
+	if code, _, stderr = e.run("darwin", false, "init", "--repo", e.remote, "--profile", "personal"); code != 0 {
+		t.Fatalf("re-running init with the same profile should be a no-op: %s", stderr)
+	}
+	if code, _, _ = e.run("darwin", false, "init", "--repo", e.remote, "--profile", "work"); code == 0 {
+		t.Fatal("switching profile without --force should fail")
 	}
 
 	code, stdout, stderr := e.run("darwin", false, "diff", "--json")
@@ -269,5 +272,28 @@ func TestInitCreateAndMigrate(t *testing.T) {
 	code, stdout, stderr := e.run("linux", false, "migrate", old, "--out", out)
 	if code != 0 || !strings.Contains(stdout, "profile box-linux: 1 packages") {
 		t.Fatalf("migrate: %d %s %s", code, stdout, stderr)
+	}
+}
+
+func TestInitReusesConfigWrittenByChezmoi(t *testing.T) {
+	e := newEnv(t)
+	cfgPath := os.Getenv("INSTALL_SYNC_CONFIG")
+	manifestDir := filepath.Join(e.root, "data", "install-sync", "manifest")
+	_ = os.WriteFile(cfgPath, []byte("profile: personal\nmanifest: "+manifestDir+"\nmanagers: [brew]\n"), 0o644)
+
+	code, _, stderr := e.run("darwin", false, "init", "--repo", e.remote, "--profile", "personal")
+	if code != 0 || !strings.Contains(stderr, "keeping the existing machine config") {
+		t.Fatalf("init with chezmoi config: %d %s", code, stderr)
+	}
+	data, _ := os.ReadFile(cfgPath)
+	if !strings.Contains(string(data), "managers: [brew]") {
+		t.Errorf("config was rewritten:\n%s", data)
+	}
+	if _, err := os.Stat(filepath.Join(manifestDir, "profiles")); err != nil {
+		t.Errorf("manifest not cloned: %v", err)
+	}
+	code, _, stderr = e.run("darwin", false, "init", "--repo", e.remote, "--profile", "work")
+	if code != ExitFailure || !strings.Contains(stderr, "--force") {
+		t.Errorf("init with another profile: %d %s", code, stderr)
 	}
 }

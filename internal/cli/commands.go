@@ -41,9 +41,18 @@ func (a *app) initCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if existing, _, err := machine.Load(); err == nil && !force {
-				return fmt.Errorf("this machine is already set up (profile %q, manifest %s); use --force to replace it",
-					existing.Profile, existing.Manifest)
+			// A config that names the same profile (e.g. written by chezmoi before
+			// the first init) is reused: init then only clones the manifest.
+			var existing *machine.Config
+			if cfg, _, err := machine.Load(); err == nil {
+				if cfg.Profile != profile && !force {
+					return fmt.Errorf("this machine is already set up for profile %q (manifest %s); use --force to switch to %q",
+						cfg.Profile, cfg.Manifest, profile)
+				}
+				existing = cfg
+				if dir == "" && local == "" {
+					dir = cfg.Manifest
+				}
 			}
 
 			var manifestDir string
@@ -115,10 +124,14 @@ func (a *app) initCmd() *cobra.Command {
 			}
 
 			cfg := &machine.Config{Profile: profile, Manifest: manifestDir}
-			if err := machine.Save(cfgPath, cfg); err != nil {
+			if existing != nil && existing.Profile == profile && existing.Manifest == manifestDir {
+				a.logf("✓ keeping the existing machine config (%s)", cfgPath)
+				cfg = existing
+			} else if err := machine.Save(cfgPath, cfg); err != nil {
 				return err
+			} else {
+				a.logf("✓ this machine applies profile %q (config: %s)", profile, cfgPath)
 			}
-			a.logf("✓ this machine applies profile %q (config: %s)", profile, cfgPath)
 			if created {
 				a.commit(ctx, &session{cfg: cfg, repo: gitrepo.Repo{Dir: manifestDir, R: a.Runner}}, profile+": create profile")
 			}
