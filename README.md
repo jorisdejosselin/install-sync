@@ -10,6 +10,10 @@ install-sync init --repo git@gitlab.com:me/my-software.git --profile work
 install-sync apply
 ```
 
+![install-sync demo: init, diff, apply, add, and JSON output](docs/demo/demo.gif)
+
+<sub>Recorded in a throwaway Debian container with [VHS](https://github.com/charmbracelet/vhs); re-render with `docs/demo/render.sh` (needs Docker).</sub>
+
 - **Profiles by purpose**: `work`, `personal`, `gaming`, which can `include` shared sets like `base-cli`.
   A new laptop adopts an existing profile; machines are never recorded in the manifest.
 - **Packages, not package-manager names**: profiles list `jq`, and the catalog says how to get it with
