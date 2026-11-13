@@ -22,3 +22,6 @@
 __pycache__/
 /config.json
 /repo-config.json
+
+# Demo build output
+/docs/demo/bin/
