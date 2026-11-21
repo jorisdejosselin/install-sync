@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // Config is the machine config: which profile this machine applies and where
@@ -106,14 +106,12 @@ func Save(path string, c *Config) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	var buf bytes.Buffer
-	buf.WriteString("# install-sync machine config (machine-local, not tracked in the manifest)\n")
-	enc := yaml.NewEncoder(&buf)
-	enc.SetIndent(2)
-	if err := enc.Encode(c); err != nil {
+	data, err := yaml.Dump(c, yaml.WithV3Defaults(), yaml.WithIndent(2), yaml.WithLineWidth(-1))
+	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, buf.Bytes(), 0o644)
+	header := "# install-sync machine config (machine-local, not tracked in the manifest)\n"
+	return os.WriteFile(path, append([]byte(header), data...), 0o644)
 }
 
 // DefaultOrder is the built-in manager order for an OS.

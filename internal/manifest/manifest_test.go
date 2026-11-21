@@ -212,3 +212,21 @@ func TestCreateProfile(t *testing.T) {
 		t.Errorf("include = %v", got)
 	}
 }
+
+func TestEditsDoNotWrapLongLines(t *testing.T) {
+	dir := t.TempDir()
+	long := "deb [arch={arch} signed-by={keyring}] https://downloads.example.com/linux/debian/{arch} {codename} stable main"
+	if err := CreateProfile(dir, "p", nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetEntry(dir, "tool", Apt, Entry{Repo: &AptRepo{Key: "https://example.com/key.gpg", Source: long}}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(dir, CatalogFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "source: "+long+"\n") {
+		t.Errorf("long line was reflowed:\n%s", data)
+	}
+}
