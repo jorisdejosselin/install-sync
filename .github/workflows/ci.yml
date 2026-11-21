@@ -55,11 +55,11 @@ jobs:
           go-version-file: go.mod
       - uses: goreleaser/goreleaser-action@v7.3.0
         with:
-          version: v2.20.2
+          version: v2.20.3
           args: check
       - uses: goreleaser/goreleaser-action@v7.3.0
         with:
-          version: v2.20.2
+          version: v2.20.3
           args: release --snapshot --clean
       - name: Run linux binary from the snapshot
         run: ./dist/install-sync_linux_amd64_v1/install-sync --version
