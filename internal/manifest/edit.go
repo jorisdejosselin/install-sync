@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // Edits work on the YAML node tree so comments and ordering written by hand
@@ -83,14 +83,11 @@ func CreateProfile(dir, name string, include []string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	p := Profile{Include: include, Packages: []string{}}
-	var buf bytes.Buffer
-	enc := yaml.NewEncoder(&buf)
-	enc.SetIndent(2)
-	if err := enc.Encode(p); err != nil {
+	data, err := Marshal(Profile{Include: include, Packages: []string{}})
+	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, buf.Bytes(), 0o644)
+	return os.WriteFile(path, data, 0o644)
 }
 
 // SetEntry adds or replaces one package manager entry in a package's
@@ -140,21 +137,22 @@ func readDoc(path string, createIfMissing bool) (*yaml.Node, error) {
 	return &doc, nil
 }
 
+// Marshal writes v as YAML the way install-sync files are laid out: two-space
+// indent and no line wrapping, so long lines written by hand are not reflowed.
+func Marshal(v any) ([]byte, error) {
+	return yaml.Dump(v, yaml.WithV3Defaults(), yaml.WithIndent(2), yaml.WithLineWidth(-1))
+}
+
 func writeDoc(path string, doc *yaml.Node) error {
-	var buf bytes.Buffer
-	enc := yaml.NewEncoder(&buf)
-	enc.SetIndent(2)
-	if err := enc.Encode(doc); err != nil {
-		return err
-	}
-	if err := enc.Close(); err != nil {
+	data, err := Marshal(doc)
+	if err != nil {
 		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, buf.Bytes(), 0o644); err != nil {
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)
