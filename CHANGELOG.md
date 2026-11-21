@@ -1,6 +1,13 @@
 # CHANGELOG
 
 
+## [1.0.3](https://github.com/jorisdejosselin/install-sync/compare/v1.0.2...v1.0.3) (2026-11-21)
+
+
+### Bug Fixes
+
+* **deps:** migrate to go.yaml.in/yaml/v4 ([4116c7c](https://github.com/jorisdejosselin/install-sync/commit/4116c7c82edc2a2f163205d72d4ca5523abd71a8))
+
 ## [1.0.2](https://github.com/jorisdejosselin/install-sync/compare/v1.0.1...v1.0.2) (2026-11-12)
 
 
