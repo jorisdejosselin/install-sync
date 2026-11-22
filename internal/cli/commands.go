@@ -231,7 +231,7 @@ func (a *app) applyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "apply",
 		Short: "Install everything in this machine's profile that is missing",
-		Long:  "Apply never uninstalls anything. Script installs are shown and confirmed first unless --yes is given; without a terminal they are skipped and the exit code is 3.",
+		Long:  "Apply never uninstalls anything. Script installs are shown and confirmed first unless --yes is given; without a terminal they are skipped, counted as skipped in the summary, and the exit code is 3.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
@@ -295,13 +295,31 @@ func (a *app) applyCmd() *cobra.Command {
 			if dryRun {
 				verb = "would install"
 			}
-			fmt.Fprintf(a.Stdout, "%s %d, already ok %d, unavailable here %d, failed %d, need confirmation %d\n",
-				verb, installed, first.Count(engine.StatusOK), unavailable, len(failed), len(confirm))
+			// Skipped scripts are part of the summary line itself, so output
+			// that is only read (or piped, losing the exit code) does not
+			// look like a clean run.
+			skipped := fmt.Sprintf("skipped %d", len(confirm))
+			if len(confirm) > 0 {
+				reason := "not confirmed"
+				if !a.Interactive {
+					reason = "no terminal"
+				}
+				skipped += fmt.Sprintf(" (%s; rerun with --yes): %s", reason, strings.Join(confirm, ", "))
+			}
+			fmt.Fprintf(a.Stdout, "%s %d, already ok %d, unavailable here %d, failed %d, %s\n",
+				verb, installed, first.Count(engine.StatusOK), unavailable, len(failed), skipped)
+			var problems []string
 			if len(failed) > 0 {
-				return &ExitError{Code: ExitFailure, Err: fmt.Errorf("failed: %s", strings.Join(failed, ", "))}
+				problems = append(problems, "failed: "+strings.Join(failed, ", "))
 			}
 			if len(confirm) > 0 {
-				return &ExitError{Code: ExitNeedsConfirm, Err: fmt.Errorf("script installs need confirmation (rerun with --yes): %s", strings.Join(confirm, ", "))}
+				problems = append(problems, "script installs skipped, rerun with --yes: "+strings.Join(confirm, ", "))
+			}
+			switch {
+			case len(failed) > 0:
+				return &ExitError{Code: ExitFailure, Err: errors.New(strings.Join(problems, "; "))}
+			case len(confirm) > 0:
+				return &ExitError{Code: ExitNeedsConfirm, Err: errors.New(problems[0])}
 			}
 			return nil
 		},
