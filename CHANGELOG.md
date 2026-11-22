@@ -1,6 +1,13 @@
 # CHANGELOG
 
 
+## [1.0.4](https://github.com/jorisdejosselin/install-sync/compare/v1.0.3...v1.0.4) (2026-11-22)
+
+
+### Bug Fixes
+
+* **apply:** count skipped script installs in the summary line ([b201b6b](https://github.com/jorisdejosselin/install-sync/commit/b201b6b60fcae24f8adb9e2c6b36568ab9d23aef)), closes [#21](https://github.com/jorisdejosselin/install-sync/issues/21)
+
 ## [1.0.3](https://github.com/jorisdejosselin/install-sync/compare/v1.0.2...v1.0.3) (2026-11-21)
 
 
