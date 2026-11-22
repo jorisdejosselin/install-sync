@@ -245,6 +245,9 @@ func TestScriptNeedsConfirmationWithoutTTY(t *testing.T) {
 	if code != ExitNeedsConfirm || !strings.Contains(stderr, "install-k9s") {
 		t.Fatalf("apply without tty: %d %s %s", code, stdout, stderr)
 	}
+	if !strings.Contains(stdout, "failed 0, skipped 1 (no terminal; rerun with --yes): k9s") {
+		t.Errorf("summary hides the skipped script: %s", stdout)
+	}
 	if strings.Contains(strings.Join(e.fake.Calls, "\n"), "sh -c install-k9s") {
 		t.Fatal("script ran without confirmation")
 	}
